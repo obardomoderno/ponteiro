@@ -195,7 +195,10 @@ nav.tabs button[aria-current="page"]{color:var(--accent);font-weight:700}
 .ck .grip svg{width:18px;height:18px;fill:currentColor}
 .ck.dragging{position:relative;z-index:2;box-shadow:0 10px 24px rgba(0,0,0,.18);transform:scale(1.02);border-radius:10px;cursor:grabbing}
 .ck.pressing{background:var(--sunk)}
-.ck.tpl{grid-template-columns:1fr auto auto;cursor:text}
+.ck.tpl{grid-template-columns:1fr auto auto;cursor:default;padding-block:6px}
+.ck .hname{box-sizing:border-box;width:100%;min-width:0;font:inherit;font-size:16px;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:8px;padding:8px 8px;margin-left:-8px;-webkit-user-select:text;user-select:text;cursor:text}
+.ck .hname:hover{border-color:var(--line)}
+.ck .hname:focus{outline:none;border-color:var(--accent);background:var(--surface)}
 .ck .txin{box-sizing:border-box;width:100%;min-width:0;font:inherit;font-size:16px;color:var(--ink);background:var(--surface);border:1px solid var(--accent);border-radius:8px;padding:6px 8px;-webkit-user-select:text;user-select:text}
 .jplay{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:22px 16px;border:0;border-radius:var(--r);background:var(--accent);color:var(--accent-ink);font-family:var(--display);font-size:20px;font-weight:700;box-shadow:var(--shadow)}
 .jplay svg{width:26px;height:26px;fill:currentColor;stroke:none}
@@ -1238,7 +1241,7 @@ function openList(id, focusAdd) {
     $("#lv", el).innerHTML = `
       <div style="display:flex;gap:12px;align-items:center"><button class="iconpick" id="lv_icon" style="--c:var(--accent);background:none;border:0;padding:0" aria-label="Trocar ícone"><span class="cur em">${esc(l.icon || "✅")}</span></button>
         <input class="titlein" id="lv_name" value="${esc(l.name)}" maxlength="50" aria-label="Nome do grupo"></div>
-      ${l.items.length ? `<div class="checks" id="lv_items">${l.items.map(i => `<div class="ck tpl" data-rid="${i.id}"><span class="tx">${esc(i.text)}</span><button class="iconbtn sm" data-del="${i.id}" aria-label="Excluir ${esc(i.text)}">${ICON.x}</button><button class="grip" aria-label="Arrastar para reordenar">${ICON.grip}</button></div>`).join("")}</div>` : `<div class="empty">Nenhum hábito.</div>`}
+      ${l.items.length ? `<div class="checks" id="lv_items">${l.items.map(i => `<div class="ck tpl" data-rid="${i.id}"><input class="hname" type="text" maxlength="80" enterkeyhint="done" value="${esc(i.text)}" data-edit="${i.id}" aria-label="Nome do hábito"><button class="iconbtn sm" data-del="${i.id}" aria-label="Excluir ${esc(i.text)}">${ICON.x}</button><button class="grip" aria-label="Arrastar para reordenar">${ICON.grip}</button></div>`).join("")}</div>` : `<div class="empty">Nenhum hábito.</div>`}
       <form class="addrow" id="lv_add"><input id="lv_new" type="text" maxlength="80" placeholder="Novo hábito" enterkeyhint="done"><button class="btn primary" type="submit">Adicionar</button></form>
       <div class="sheetbar"><span></span><button class="btn danger" id="lv_delete">Excluir grupo</button></div>`;
     $("#lv_add", el).onsubmit = ev => { ev.preventDefault(); const v = $("#lv_new", el).value.trim(); if (!v) return; l.items.push({ id: uid(), text: v, done: false }); markApp(); draw(true); renderAll(); };
@@ -1251,18 +1254,13 @@ function openList(id, focusAdd) {
       list.onclick = ev => {
         if (list.dataset.suppress) { delete list.dataset.suppress; return; }
         const del = ev.target.closest("[data-del]"); if (del) { l.items = l.items.filter(i => i.id !== del.dataset.del); markApp(); draw(); renderAll(); return; }
-        if (ev.target.closest(".grip") || ev.target.closest("input")) return;
-        const row = ev.target.closest("[data-rid]"); if (!row) return;
-        const it = l.items.find(i => i.id === row.dataset.rid); if (!it) return;
-        // tocar no hábito: renomeia ali mesmo
-        const tx = row.querySelector(".tx"); const inp = document.createElement("input");
-        inp.type = "text"; inp.className = "txin"; inp.maxLength = 80; inp.value = it.text; inp.setAttribute("aria-label", "Nome do hábito");
-        tx.replaceWith(inp); inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
-        let done = false;
-        const finish = save => { if (done) return; done = true; const v = inp.value.trim(); if (save && v && v !== it.text) { it.text = v; markApp(); renderAll(); } draw(); };
-        inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); finish(true); } else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); finish(false); } };
-        inp.onblur = () => finish(true);
       };
+      // renomear: o nome já é um campo; um toque abre o teclado, Enter ou sair do campo salva, Esc desfaz
+      list.querySelectorAll("[data-edit]").forEach(inp => {
+        const it = l.items.find(x => x.id === inp.dataset.edit);
+        inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); inp.blur(); } else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); inp.value = it.text; inp.blur(); } });
+        inp.addEventListener("change", () => { const v = inp.value.trim(); if (!v) { inp.value = it.text; return; } if (v !== it.text) { it.text = v; markApp(); renderAll(); } });
+      });
       enableReorder(list, ids => { const map = new Map(l.items.map(i => [i.id, i])); l.items = ids.map(x => map.get(x)).filter(Boolean); markApp(); draw(); renderAll(); });
     }
   };
@@ -1414,10 +1412,10 @@ setInterval(() => {
   for (const el of document.querySelectorAll("[data-reg]")) { const [a, b] = el.dataset.reg.split(":"); const g = regOf(a, b); if (g) el.textContent = fmtShortClock(runElapsed(g)); }
 }, 1000);
 setInterval(() => { if (Store.ready) renderAll(); }, 60000);
-window.PONTEIRO_BUILD = (b => { const d = new Date(Date.UTC(+b.slice(0, 4), +b.slice(4, 6) - 1, +b.slice(6, 8), +b.slice(8, 10), +b.slice(10, 12))); return pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); })("20261023071726");
+window.PONTEIRO_BUILD = (b => { const d = new Date(Date.UTC(+b.slice(0, 4), +b.slice(4, 6) - 1, +b.slice(6, 8), +b.slice(8, 10), +b.slice(10, 12))); return pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); })("20261023072102");
 boot();
 /* atualização automática: ao abrir, ao voltar para a tela e a cada 5 min, confere se há versão nova publicada e recarrega */
-const BUILD = "20261023071726";
+const BUILD = "20261023072102";
 let swReg = null;
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(() => {}));
 async function checkUpdate() {
