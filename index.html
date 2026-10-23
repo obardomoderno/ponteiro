@@ -231,6 +231,7 @@ nav.tabs button[aria-current="page"]{color:var(--accent);font-weight:700}
 .field .l{font-weight:700}
 .field .h{font-size:12px;color:var(--muted);flex-basis:100%;margin-top:-6px}
 .field .seg{min-width:min(260px,100%)}
+.dsel{font-size:16px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
 
 /* telas cheias (editores) */
 .fs{position:fixed;inset:0;z-index:40;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
@@ -318,10 +319,12 @@ function fmtShortClock(ms) { const s = Math.floor(Math.max(0, ms) / 1000); const
 const fmtHM = ms => { const d = new Date(ms); return pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()); };
 const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 const DIAS = ["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
-const sod = ms => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); };
+/* o "dia" do app vai da hora escolhida em Mais até a mesma hora do dia seguinte (ex.: 05:00 → 05:00) */
+const dayOff = () => ((typeof S !== "undefined" && S.settings && S.settings.dayEndHour) || 0) * HOUR;
+const sod = ms => { const o = dayOff(); const d = new Date(ms - o); d.setHours(0, 0, 0, 0); return d.getTime() + o; };
 const addDays = (ms, n) => { const d = new Date(ms); d.setDate(d.getDate() + n); return d.getTime(); };
 function fmtDayLong(ms) {
-  const d = new Date(ms), t = sod(now());
+  const d = new Date(sod(ms)), t = sod(now());
   if (sod(ms) === t) return "Hoje, " + d.getDate() + " de " + MESES[d.getMonth()];
   if (sod(ms) === addDays(t, -1)) return "Ontem, " + d.getDate() + " de " + MESES[d.getMonth()];
   return DIAS[d.getDay()][0].toUpperCase() + DIAS[d.getDay()].slice(1) + ", " + d.getDate() + " de " + MESES[d.getMonth()];
@@ -334,8 +337,9 @@ function periodRange(kind, offset) {
   const d = new Date(sod(now()));
   if (kind === "day") { const s = addDays(d.getTime(), offset); return [s, addDays(s, 1)]; }
   if (kind === "week") { const back = (d.getDay() - fw + 7) % 7; const s = addDays(d.getTime(), -back + 7 * offset); return [s, addDays(s, 7)]; }
-  if (kind === "month") { const s = new Date(d.getFullYear(), d.getMonth() + offset, 1).getTime(); return [s, new Date(d.getFullYear(), d.getMonth() + offset + 1, 1).getTime()]; }
-  const s = new Date(d.getFullYear() + offset, 0, 1).getTime(); return [s, new Date(d.getFullYear() + offset + 1, 0, 1).getTime()];
+  const o = dayOff();
+  if (kind === "month") { const s = new Date(d.getFullYear(), d.getMonth() + offset, 1).getTime() + o; return [s, new Date(d.getFullYear(), d.getMonth() + offset + 1, 1).getTime() + o]; }
+  const s = new Date(d.getFullYear() + offset, 0, 1).getTime() + o; return [s, new Date(d.getFullYear() + offset + 1, 0, 1).getTime() + o];
 }
 function periodLabel(kind, [s, e]) {
   const a = new Date(s), b = new Date(e - 1);
@@ -434,7 +438,7 @@ function flush() {
   })();
 }
 function syncChip() {
-  if (Store.mode === "local") return `<button class="chip mid" style="border:0" data-act="tab" data-k="more">Só neste aparelho</button>`;
+  if (Store.mode === "local") return "";
   if (Store.mode !== "db") return "";
   const n = Store.dirty.size + Store.pending.size;
   if (navigator.onLine === false || (Store.hadTrouble && n)) return `<span class="chip no">Offline${n ? " · " + n + (n > 1 ? " pendentes" : " pendente") : ""}</span>`;
@@ -634,6 +638,7 @@ async function boot() {
       loadApp(cache.app); S.L = cache.L || {}; S.del = cache.del || {};
       for (const k of cache.dirty || []) Store.dirty.add(k);
       if (Store.dirty.size) Store.hadTrouble = true;
+      purgeExamples();
       Store.ready = true; renderAll();
     }
     let checked = false;
@@ -641,7 +646,8 @@ async function boot() {
       applySnap(snap);
       if (!checked && (!snap.metadata.fromCache || snap.docs.some(d => d.id === "app" && d.exists))) {
         checked = true;
-        if (!snap.docs.some(d => d.id === "app" && d.exists)) { if (cache && cache.app) markApp(); else seedExample(); }
+        if (!snap.docs.some(d => d.id === "app" && d.exists)) { if (cache && cache.app) markApp(); else seedEmpty(); }
+        purgeExamples();
         Store.ready = true; flush();
       }
       if (Store.ready) renderAll();
@@ -651,12 +657,26 @@ async function boot() {
     Store.mode = "local";
     let raw = null;
     try { raw = JSON.parse(localStorage.getItem(LS_KEY) || "null"); } catch (e) { raw = null; }
-    if (raw) { loadApp(raw); S.L = raw.L || {}; S.del = raw.del || {}; } else seedExample();
+    if (raw) { loadApp(raw); S.L = raw.L || {}; S.del = raw.del || {}; purgeExamples(); } else seedEmpty();
     Store.ready = true; renderAll();
   }
 }
 
 /* ---------- dados de exemplo (marcados como exemplo) ---------- */
+function seedEmpty() { S.types = []; ensureJournal(); S.L = {}; S.del = {}; S.running = []; S.lists = []; S.example = false; markApp(); }
+const EX_TYPES = [["Código", "#2F5BEA", "💻"], ["Reuniões", "#6C4AB6", "👥"], ["Email", "#3E92CC", "📧"], ["Cozinhar", "#E4572E", "🍳"], ["Limpeza", "#8D6A4F", "🧹"], ["Sono", "#6B7C85", "💤"], ["Leitura", "#0B9A93", "📚"], ["Exercício", "#2E933C", "🏋️"], ["Deslocamento", "#9BBF5A", "🚌"], ["Lazer", "#C2378D", "🎮"], ["Trabalho", "#2F5BEA", "💼"], ["Casa", "#F3A712", "🏠"]];
+const EX_LISTS = ["Banho", "Sair de casa", "Fim do expediente"];
+const EX_TEXTS = ["Acordei cedo, banho rápido antes do trabalho.", "Dia corrido. Separei as coisas na noite anterior."];
+function purgeExamples() {
+  if (!S.example) return;
+  const ex = new Set(S.types.filter(t => EX_TYPES.some(([n, c, i]) => t.name === n && t.color === c && t.icon === i)).map(t => t.id));
+  const exEntries = new Set(allLogs().filter(l => l.kind === "journal" && EX_TEXTS.includes(l.text)).map(l => l.id));
+  dropLogs(l => ex.has(l.typeId) || exEntries.has(l.id) || (l.entry && exEntries.has(l.entry)));
+  S.running = S.running.filter(r => !ex.has(r.typeId));
+  S.types = S.types.filter(t => !ex.has(t.id));
+  S.lists = S.lists.filter(l => !EX_LISTS.includes(l.name));
+  ensureJournal(); S.example = false; markApp();
+}
 function seedExample() {
   const T = (name, color, icon, order) => { const t = { id: uid(), name, color, icon, parent: null, isGroup: false, order, archived: false }; S.types.push(t); return t; };
   S.types = [];
@@ -869,8 +889,8 @@ function viewLog() {
   let rows = [...segs].sort((x, y) => y.s - x.s).map(row).join("");
   rows += regs.filter(r => !used.has(r.id)).map(regRow).join("");
   return `${exampleBanner()}
-  <div class="dayline"><div class="strip" role="img" aria-label="Linha do tempo do dia">${blocks}</div><div class="ticks"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
-  <div class="kv"><span>Registrado <b>${fmtDur(cov)}</b></span><span>Sem registro <b>${fmtDur(span - cov)}</b></span><span>Intervalos <b>${segs.length}</b></span>${regs.length ? `<span>Registros <b>${regs.length}</b></span>` : ""}</div></div>
+  <div class="dayline"><div class="strip" role="img" aria-label="Linha do tempo do dia">${blocks}</div><div class="ticks">${[0, 6, 12, 18, 24].map(h => `<span>${pad((h + (S.settings.dayEndHour || 0)) % 24)}</span>`).join("")}</div>
+  <div class="kv"><span>Registrado <b>${fmtDur(cov)}</b></span><span>Intervalos <b>${segs.length}</b></span>${regs.length ? `<span>Registros <b>${regs.length}</b></span>` : ""}</div></div>
   <section class="section"><div class="rowhead"><h2>Intervalos</h2><button class="btn" data-act="newlog">${ICON.plus} Adicionar</button></div>
   ${rows ? `<div class="list">${rows}</div>` : `<div class="empty">Nada registrado neste dia.</div>`}</section>`;
 }
@@ -894,7 +914,7 @@ function viewStats() {
   const span = Math.max(0, Math.min(b, now()) - a); const untracked = Math.max(0, span - coveredMs(segs));
   const tops = S.types.filter(t => !t.isGroup).map(t => ({ id: t.id, name: t.name, color: t.color, ms: roll.get(t.id) || 0 })).filter(p => p.ms > 0).sort((x, y) => y.ms - x.ms);
   for (const [id, ms] of raw) if (!typeById(id) && ms > 0) tops.push({ id, name: "Atividade removida", color: "#6B7C85", ms });
-  const showU = S.settings.showUntracked && untracked > 0;
+  const showU = false;
   const parts = showU ? [...tops, { id: "_u", name: "Sem registro", color: "var(--untracked)", ms: untracked }] : tops;
   const denom = parts.reduce((x, y) => x + y.ms, 0);
   const row = (p, child) => { const pc = denom ? p.ms / denom * 100 : 0; const t = typeById(p.id); const isG = t && t.isGroup;
@@ -903,9 +923,9 @@ function viewStats() {
   for (const p of parts) { rows += row(p, false); const t = typeById(p.id); if (t && t.isGroup && UI.statOpen[p.id]) for (const c of childrenOf(t.id)) { const ms = roll.get(c.id) || 0; if (ms > 0) rows += row({ id: c.id, name: c.name, color: c.color, ms }, true); } }
   let perDay = "";
   if (UI.statKind === "week" || UI.statKind === "month") { const days = []; for (let d = a; d < b; d = addDays(d, 1)) { const e = addDays(d, 1); const dt = new Date(d); days.push({ ms: coveredMs(segmentsIn(d, e)), label: fmtDayLong(d), tick: UI.statKind === "week" ? DIAS[dt.getDay()].slice(0, 3) : String(dt.getDate()) }); } perDay = `<div class="chartcard">${barsSVG(days)}</div>`; }
-  if (UI.statKind === "year") { const ms = []; for (let m = 0; m < 12; m++) { const s = new Date(new Date(a).getFullYear(), m, 1).getTime(), e = new Date(new Date(a).getFullYear(), m + 1, 1).getTime(); ms.push({ ms: coveredMs(segmentsIn(s, e)), label: MESES[m], tick: MESES[m].slice(0, 1).toUpperCase() }); } perDay = `<div class="chartcard">${barsSVG(ms)}</div>`; }
+  if (UI.statKind === "year") { const ms = []; for (let m = 0; m < 12; m++) { const s = new Date(new Date(a).getFullYear(), m, 1).getTime() + dayOff(), e = new Date(new Date(a).getFullYear(), m + 1, 1).getTime() + dayOff(); ms.push({ ms: coveredMs(segmentsIn(s, e)), label: MESES[m], tick: MESES[m].slice(0, 1).toUpperCase() }); } perDay = `<div class="chartcard">${barsSVG(ms)}</div>`; }
   return `<div class="chartcard">${donutSVG(parts, denom, fmtDur(tracked), "registrado")}
-    <div class="kv"><span>Registrado <b>${fmtDur(tracked)}</b></span>${S.settings.showUntracked ? `<span>Sem registro <b>${fmtDur(untracked)}</b></span>` : ""}<span>Atividades <b>${tops.length}</b></span></div></div>
+    <div class="kv"><span>Registrado <b>${fmtDur(tracked)}</b></span><span>Atividades <b>${tops.length}</b></span></div></div>
   ${parts.length ? `<div class="list">${rows}</div>` : `<div class="empty">Nada registrado neste período.</div>`}
   ${perDay}`;
 }
@@ -1007,9 +1027,8 @@ function viewMore() {
   </div></section>
   <section class="section"><h2>Calendário e gráficos</h2><div class="form">
     <div class="field"><span class="l">Semana começa</span>${seg("firstWeekday", [[1, "Segunda"], [0, "Domingo"]])}</div>
-    <div class="field"><span class="l">Mostrar tempo sem registro</span>${seg("showUntracked", [[true, "Sim"], [false, "Não"]])}</div>
+    <div class="field"><label class="l" for="dayEnd">O dia termina às</label><select id="dayEnd" class="dsel">${Array.from({ length: 13 }, (_, h) => `<option value="${h}" ${(st.dayEndHour || 0) === h ? "selected" : ""}>${pad(h)}:00${h === 0 ? " (meia-noite)" : ""}</option>`).join("")}</select></div>
   </div></section>
-  ${window.claude ? "" : `<section class="section"><h2>Sincronização</h2><div class="form">${ghCfg() ? `<div class="field"><span class="l">Ativa neste aparelho</span><button class="btn" data-act="synccode">Código de conexão</button></div><div class="field"><span class="l">Parar de sincronizar</span><button class="btn" data-act="syncoff">Desativar</button></div>` : `<div class="field"><span class="l">Desativada</span><button class="btn primary" data-act="syncon">Ativar</button></div>`}</div></section>`}
   <section class="section"><h2>Dados</h2><div class="form">
     <div class="field"><span class="l">Relatório CSV</span><button class="btn" data-act="exportcsv">Exportar</button></div>
     <div class="field"><span class="l">Backup completo</span><button class="btn" data-act="exportjson">Exportar</button></div>
@@ -1403,7 +1422,7 @@ document.addEventListener("click", e => {
     case "close": closeLayer(el.closest(".fs")); break;
   }
 });
-document.addEventListener("change", e => { if (e.target.id === "importFile" && e.target.files[0]) { importFile(e.target.files[0]); e.target.value = ""; } });
+document.addEventListener("change", e => { if (e.target.id === "dayEnd") { S.settings.dayEndHour = +e.target.value; markApp(); renderAll(); return; } if (e.target.id === "importFile" && e.target.files[0]) { importFile(e.target.files[0]); e.target.value = ""; } });
 document.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches(".trow")) { e.preventDefault(); e.target.click(); return; } if (e.key === "Escape" && $("#layers").children.length) closeLayer(); });
 
 /* relógios ao vivo: só os números a cada segundo; a tela inteira a cada minuto */
@@ -1412,10 +1431,10 @@ setInterval(() => {
   for (const el of document.querySelectorAll("[data-reg]")) { const [a, b] = el.dataset.reg.split(":"); const g = regOf(a, b); if (g) el.textContent = fmtShortClock(runElapsed(g)); }
 }, 1000);
 setInterval(() => { if (Store.ready) renderAll(); }, 60000);
-window.PONTEIRO_BUILD = (b => { const d = new Date(Date.UTC(+b.slice(0, 4), +b.slice(4, 6) - 1, +b.slice(6, 8), +b.slice(8, 10), +b.slice(10, 12))); return pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); })("20261023072102");
+window.PONTEIRO_BUILD = (b => { const d = new Date(Date.UTC(+b.slice(0, 4), +b.slice(4, 6) - 1, +b.slice(6, 8), +b.slice(8, 10), +b.slice(10, 12))); return pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); })("20261023073026");
 boot();
 /* atualização automática: ao abrir, ao voltar para a tela e a cada 5 min, confere se há versão nova publicada e recarrega */
-const BUILD = "20261023072102";
+const BUILD = "20261023073026";
 let swReg = null;
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(() => {}));
 async function checkUpdate() {
