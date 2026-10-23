@@ -229,6 +229,11 @@ nav.tabs button[aria-current="page"]{color:var(--accent);font-weight:700}
 .rbig.paused{color:var(--muted)}
 .regctl .btn{flex:1 1 0;padding-block:12px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tf{display:flex;flex-direction:column;gap:6px}
+.tf > label{font-size:13px;font-weight:700;color:var(--muted)}
+.tfrow{display:flex;gap:8px;align-items:stretch}
+.tfrow input{flex:1}
+.tfrow .btn{flex:none;padding-inline:16px}
 .swatches{display:flex;flex-wrap:wrap;gap:8px}
 .swatches button{width:34px;height:34px;border-radius:50%;border:2px solid transparent;background:var(--c)}
 .swatches button[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 2px var(--bg)}
@@ -958,12 +963,14 @@ function editLog(id) {
   const def = l || (() => { const base = addDays(sod(now()), UI.histDay); const e = UI.histDay === 0 ? now() : base + 12 * HOUR; return { typeId: topLevel().flatMap(t => t.isGroup ? childrenOf(t.id) : [t])[0]?.id, start: e - HOUR, end: e, comment: "" }; })();
   openLayer(l ? "Editar intervalo" : "Novo intervalo", `
     <label>Tipo de atividade<select id="f_type">${typeOptions(def.typeId)}</select></label>
-    <div class="two"><label>Início<input id="f_s" type="datetime-local" step="1" value="${toLocalInput(def.start)}"></label><label>Fim<input id="f_e" type="datetime-local" step="1" value="${toLocalInput(def.end)}"></label></div>
+    <div class="tf"><label for="f_s">Início</label><div class="tfrow"><input id="f_s" type="datetime-local" step="1" value="${toLocalInput(def.start)}"><button type="button" class="btn" data-now="f_s">Agora</button></div></div>
+    <div class="tf"><label for="f_e">Fim</label><div class="tfrow"><input id="f_e" type="datetime-local" step="1" value="${toLocalInput(def.end)}"><button type="button" class="btn primary" data-now="f_e">Agora</button></div></div>
     <label>Comentário<textarea id="f_c" class="note" style="min-height:180px">${esc(def.comment)}</textarea></label>
     <p class="small" id="f_msg"></p>
     ${l ? `<div class="sheetbar"><button class="btn danger" id="f_del">Apagar intervalo</button></div>` : ""}`, {
     okLabel: "Salvar",
     onMount: el => {
+      el.querySelectorAll("[data-now]").forEach(b => b.onclick = () => { const i = $("#" + b.dataset.now, el); i.value = toLocalInput(now()); i.dispatchEvent(new Event("change")); $("#f_msg", el).textContent = ""; });
       el.querySelector("[data-ok]").onclick = () => { const typeId = $("#f_type", el).value, s = fromLocalInput($("#f_s", el).value), e = fromLocalInput($("#f_e", el).value);
         if (!typeId) { $("#f_msg", el).textContent = "Escolha um tipo de atividade."; return; }
         if (!(e > s)) { $("#f_msg", el).textContent = "O fim precisa ser depois do início."; return; }
