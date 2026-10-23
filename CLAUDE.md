@@ -4,6 +4,7 @@ Este repositório hospeda dois apps pessoais do dono (GitHub Pages):
 
 - **Ponteiro**: registro de tempo por atividade. https://obardomoderno.github.io/ponteiro/
 - **Diário**: registros escritos com grupos de hábitos. https://obardomoderno.github.io/ponteiro/diario/
+- **Semana**: planejamento semanal com duração e horários fixos. https://obardomoderno.github.io/ponteiro/semana/
 
 ## Onde estão os dados
 
@@ -11,6 +12,7 @@ Os apps não guardam dados aqui. Quando a "Cópia no GitHub" está ativada, cada
 
 - `ponteiro.json`
 - `diario.json`
+- `semana.json`
 
 Quando o dono mandar os links dos apps e perguntar o que fez, o que está fazendo ou como está a vida dele:
 
@@ -37,6 +39,13 @@ Os dois arquivos seguem `{ "app": "...", "updatedAt": "<ISO>", "data": { ... } }
 - `entries`: registros `{ id, at, text, checks: [ { name, icon, items: [ { text, done } ] } ] }`. A porcentagem de cada grupo é a fração de `items` com `done: true`.
 - `groups`: modelos de grupos de hábitos `{ id, name, icon, items: [ { id, text } ] }`.
 - `settings.dayEndHour`: igual ao Ponteiro.
+
+### semana.json → `data`
+
+- `days`: um objeto por data local `"AAAA-MM-DD": { items, mt }`. `mt` é a última alteração do dia (usado para mesclar aparelhos).
+- `items`: atividades em ordem `{ id, name, dur, at, done, note }`. `dur` é a duração planejada em minutos (`null` = livre). `at` é o horário fixo `"HH:MM"` (`null` = calculado).
+- Os horários das atividades sem `at` são calculados, nunca guardados: entre dois horários fixos, as atividades preenchem o intervalo (as livres dividem a sobra; se não houver livres, as durações são ajustadas proporcionalmente, ou só a última se `settings.fit` for `"last"`). Antes do primeiro horário fixo, conta-se para trás com as durações; depois do último, para frente. Um horário fixo menor que o anterior cai no dia seguinte. Dia sem horário fixo não tem horários.
+- `settings`: `{ weekStart (1 = segunda, 0 = domingo), fit ("prop" | "last"), mt }`.
 
 ## Como ajudar
 
