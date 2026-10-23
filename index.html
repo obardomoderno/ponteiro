@@ -715,7 +715,16 @@ function clearExample() {
 }
 
 /* ---------- cronômetros: atividades e registros ---------- */
-const runElapsed = r => r.acc + (r.state === "running" ? now() - r.since : 0);
+/* tempo de uma atividade em andamento = o que já está no Histórico (trechos dela) + o trecho atual.
+   Assim, corrigir um intervalo no Histórico muda também o cartão da tela Agora. */
+function runLogs(r) { return timeLogs().filter(l => l.run === r.id || (!l.run && l.typeId === r.typeId && l.start >= r.started - 1000)); }
+function runStartOf(r) { let st = r.state === "running" ? r.since : Infinity; for (const l of runLogs(r)) if (l.start < st) st = l.start; return st === Infinity ? r.started : st; }
+const runElapsed = r => {
+  if (!r.typeId) return r.acc + (r.state === "running" ? now() - r.since : 0);
+  const logged = runLogs(r).reduce((sum, l) => sum + (l.end - l.start), 0);
+  return logged + (r.state === "running" ? Math.max(0, now() - r.since) : 0);
+};
+const runTag = r => r.typeId === JOURNAL ? { run: r.id, entry: r.id } : { run: r.id };
 const runById = id => S.running.find(x => x.id === id);
 /* ponto de partida: se outra atividade está rodando, agora (ela é pausada neste instante);
    se nada está rodando, o fim do último intervalo registrado, para não sobrar buraco entre uma atividade e a próxima */
@@ -737,13 +746,13 @@ function startType(typeId) {
   S.running.unshift({ id: uid(), typeId, state: "running", since: at, acc: 0, started: at, comment: "", regs: [] });
   markApp(); renderAll();
 }
-function pauseRun(id, quiet) { const r = runById(id); if (!r || r.state !== "running") return; const t = now(); logInterval(r.typeId, r.since, t, r.comment, r.typeId === JOURNAL ? { entry: r.id } : null); r.acc += t - r.since; r.state = "paused"; markApp(); if (!quiet) renderAll(); }
+function pauseRun(id, quiet) { const r = runById(id); if (!r || r.state !== "running") return; const t = now(); logInterval(r.typeId, r.since, t, r.comment, runTag(r)); r.acc += t - r.since; r.state = "paused"; markApp(); if (!quiet) renderAll(); }
 function resumeRun(id) { const r = runById(id); if (!r || r.state === "running") return; const at = startPoint(id); haltOthers(id); r.state = "running"; r.since = at; markApp(); renderAll(); }
 function stopRun(id, quiet) {
   const r = runById(id); if (!r) return;
   const total = runElapsed(r);
   const end = now();
-  if (r.state === "running") logInterval(r.typeId, r.since, end, r.comment, r.typeId === JOURNAL ? { entry: r.id } : null);
+  if (r.state === "running") logInterval(r.typeId, r.since, end, r.comment, runTag(r));
   if (r.typeId === JOURNAL) addLog({ id: r.id, kind: "journal", start: r.started, end, ms: total, text: r.comment || "", checks: clone(r.checks || []) });
   for (const g of [...(r.regs || [])]) stopReg(r.id, g.id, true);
   S.running = S.running.filter(x => x.id !== id); markApp();
@@ -823,7 +832,7 @@ function viewNow() {
       <div class="nm">${esc(t.name)} ${p ? `<span class="grp">· ${esc(p.name)}</span>` : ""}</div>
       <div class="acts">${r.state === "running" ? `<button class="iconbtn" data-act="pause" data-id="${r.id}" aria-label="Pausar ${esc(t.name)}">${ICON.pause}</button>` : `<button class="iconbtn" data-act="resume" data-id="${r.id}" aria-label="Retomar ${esc(t.name)}">${ICON.play}</button>`}<button class="iconbtn" data-act="stop" data-id="${r.id}" aria-label="Parar ${esc(t.name)}">${ICON.stop}</button></div>
       <div class="clock" data-run="${r.id}">${fmtClock(runElapsed(r))}</div>
-      <div><span class="chip ${r.state === "running" ? "live" : ""}">${r.state === "running" ? "Rodando" : "Pausado"}</span> <span class="sub">desde ${fmtHM(r.started)}</span></div>
+      <div><span class="chip ${r.state === "running" ? "live" : ""}">${r.state === "running" ? "Rodando" : "Pausado"}</span> <span class="sub">desde ${fmtHM(runStartOf(r))}</span></div>
       ${r.comment ? `<div class="cm has" style="grid-column:2 / span 2">${esc(r.comment)}</div>` : ""}</div>
       </div>`; }).join("");
   const tile = t => { const on = S.running.some(r => descendants(t.id).includes(r.typeId) && r.state === "running"); const kids = t.isGroup ? childrenOf(t.id).length : 0;
@@ -905,7 +914,7 @@ function viewJournal() {
       <div class="nm">Registro em andamento</div>
       <div class="acts">${jr.state === "running" ? `<button class="iconbtn" data-act="pause" data-id="${jr.id}" aria-label="Pausar registro">${ICON.pause}</button>` : `<button class="iconbtn" data-act="resume" data-id="${jr.id}" aria-label="Retomar registro">${ICON.play}</button>`}<button class="iconbtn" data-act="stop" data-id="${jr.id}" aria-label="Encerrar registro">${ICON.stop}</button></div>
       <div class="clock" data-run="${jr.id}">${fmtClock(runElapsed(jr))}</div>
-      <div><span class="chip ${jr.state === "running" ? "live" : ""}">${jr.state === "running" ? "Rodando" : "Pausado"}</span> <span class="sub">desde ${fmtHM(jr.started)}</span></div>
+      <div><span class="chip ${jr.state === "running" ? "live" : ""}">${jr.state === "running" ? "Rodando" : "Pausado"}</span> <span class="sub">desde ${fmtHM(runStartOf(jr))}</span></div>
       ${jr.comment ? `<div class="cm has" style="grid-column:2 / span 2">${esc(jr.comment)}</div>` : ""}
       ${(jr.checks || []).length ? `<div class="jchips" style="grid-column:2 / span 2">${checksSummary(jr.checks)}</div>` : ""}</div></div>`
     : `<button class="jplay" data-act="jstart">${ICON.play}<span>Iniciar registro</span></button>`;
@@ -1072,8 +1081,8 @@ function editRunning(id) {
         x.typeId = typeId; x.comment = comment;
         if (running) { if (x.acc === 0) x.started = s; x.since = s; }
         if (e !== null) {
-          const total = x.acc + (running ? e - x.since : 0);
-          if (running) logInterval(x.typeId, x.since, e, x.comment);
+          if (running) logInterval(x.typeId, x.since, e, x.comment, runTag(x));
+          const total = runLogs(x).reduce((sum, l) => sum + (l.end - l.start), 0);
           S.running = S.running.filter(o => o.id !== id);
           toast((typeById(x.typeId) || GONE).name + ": " + fmtDur(total) + " registrados.");
         }
@@ -1084,7 +1093,7 @@ function editRunning(id) {
 }
 function editRunNote(id) {
   const r = runById(id); if (!r) return; const t = typeById(r.typeId) || GONE;
-  liveEditor({ title: t.name, ctx: ctxBox(t, "Desde " + fmtHM(r.started)), clockAttr: `data-run="${r.id}"`, clockText: fmtClock(runElapsed(r)),
+  liveEditor({ title: t.name, ctx: ctxBox(t, "Desde " + fmtHM(runStartOf(r))), clockAttr: `data-run="${r.id}"`, clockText: fmtClock(runElapsed(r)),
     isRunning: () => runById(id)?.state === "running", value: r.comment,
     onSave: v => { const x = runById(id); if (x && x.comment !== v) { x.comment = v; markApp(); } },
     onToggle: () => { const x = runById(id); if (!x) return; if (x.state === "running") pauseRun(id); else resumeRun(id); },
@@ -1395,7 +1404,7 @@ setInterval(() => {
 setInterval(() => { if (Store.ready) renderAll(); }, 60000);
 boot();
 /* atualização automática: ao abrir, ao voltar para a tela e a cada 5 min, confere se há versão nova publicada e recarrega */
-const BUILD = "20261023065029";
+const BUILD = "20261023065427";
 let swReg = null;
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(() => {}));
 async function checkUpdate() {
