@@ -1,6 +1,6 @@
 // Service worker do Ponteiro: guarda o app no aparelho para abrir sem internet.
 // Funciona em qualquer subpasta (ex.: usuario.github.io/ponteiro/). A sincronização com o GitHub nunca passa pelo cache.
-const VERSION = "ponteiro-v4";
+const VERSION = "ponteiro-v5";
 const HOME = new URL("./", self.location).href;
 const SHELL = ["./", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
@@ -23,13 +23,14 @@ self.addEventListener("fetch", (e) => {
 
   if (req.mode === "navigate") {
     e.respondWith(
-      fetch(req)
+      fetch(req.url, { cache: "no-store", credentials: "same-origin" })   // sempre a versão publicada, sem o cache do navegador
         .then((res) => { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(HOME, copy)); return res; })
         .catch(() => caches.match(HOME)),
     );
     return;
   }
 
+  if (url.searchParams.has("u")) return;   // verificação de versão nova: nunca do cache
   const cacheable = url.origin === self.location.origin || url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com";
   if (!cacheable) return;
   e.respondWith(

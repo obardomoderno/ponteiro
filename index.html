@@ -1245,7 +1245,24 @@ setInterval(() => {
 }, 1000);
 setInterval(() => { if (Store.ready) renderAll(); }, 60000);
 boot();
-if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+/* atualização automática: ao abrir, ao voltar para a tela e a cada 5 min, confere se há versão nova publicada e recarrega */
+const BUILD = "20261023061922";
+let swReg = null;
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(() => {}));
+async function checkUpdate() {
+  if (navigator.onLine === false) return;
+  try { if (swReg) swReg.update(); } catch (e) { /* ok */ }
+  let latest = null;
+  try { const h = await (await fetch("./?u=" + Date.now(), { cache: "no-store" })).text(); const m = h.match(/const BUILD = "([0-9]+)"/); latest = m && m[1]; } catch (e) { return; }
+  if (!latest || latest === BUILD) return;
+  if ($("#layers").children.length) { setTimeout(checkUpdate, 15000); return; }   // não interrompe uma edição aberta
+  try { if (sessionStorage.getItem("ponteiro.updatedTo") === latest) return; sessionStorage.setItem("ponteiro.updatedTo", latest); } catch (e) { /* ok */ }
+  saveCache(); toast("Atualizando o Ponteiro…"); setTimeout(() => location.reload(), 400);
+}
+setTimeout(checkUpdate, 2500);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkUpdate(); });
+addEventListener("pageshow", e => { if (e.persisted) checkUpdate(); });
+setInterval(checkUpdate, 5 * 60 * 1000);
 </script>
 </body>
 </html>
