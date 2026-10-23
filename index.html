@@ -391,6 +391,7 @@ function saveCache() {
     if (Store.mode === "db") localStorage.setItem(cacheKey(), JSON.stringify({ app: appBody(), L: S.L, del: S.del, dirty: [...new Set([...Store.dirty, ...Store.pending])], at: now() }));
     else if (Store.mode === "local") localStorage.setItem(LS_KEY, JSON.stringify({ ...appBody(), L: S.L, del: S.del }));
   } catch (e) { /* armazenamento do aparelho indisponível */ }
+  if (Store.mode === "local" && Store.ready && typeof cloudSoon === "function") cloudSoon();
 }
 const withTimeout = (p, ms = 15000) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej({ code: "unavailable", message: "timeout" }), ms))]);
 async function pushLogMonth(k) {
@@ -614,6 +615,81 @@ function syncOff(btn) {
     try { localStorage.setItem(LS_KEY, JSON.stringify({ ...appBody(), L: S.L, del: S.del })); localStorage.removeItem("ponteiro.gh"); } catch (e) { /* ok */ }
     location.reload();
   });
+}
+
+
+/* ---------- cópia no GitHub (repositório privado do usuário), para backup e para o Claude ler ---------- */
+const CLOUD_KEY = "ponteiro.cloud", CLOUD_FILE = "ponteiro.json", CLOUD_DEFAULT_REPO = "obardomoderno/meus-dados";
+function cloudCfg() { try { return JSON.parse(localStorage.getItem(CLOUD_KEY) || "null"); } catch (e) { return null; } }
+function cloudSaveCfg(c) { try { if (c) localStorage.setItem(CLOUD_KEY, JSON.stringify(c)); else localStorage.removeItem(CLOUD_KEY); } catch (e) { /* ok */ } }
+let cloudT = null, cloudBusy = false, cloudAgain = false;
+function cloudSoon(ms) { if (!cloudCfg()) return; clearTimeout(cloudT); cloudT = setTimeout(cloudPush, ms ?? 8000); }
+const b64utf8 = str => { const bytes = new TextEncoder().encode(str); let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); };
+const utf8b64 = b64 => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\s/g, "")), c => c.charCodeAt(0)));
+function cloudReq(cfg, method, body) {
+  return fetch("https://api.github.com/repos/" + cfg.repo + "/contents/" + CLOUD_FILE + (method === "GET" ? "?t=" + Date.now() : ""), { method, cache: "no-store",
+    headers: { Accept: "application/vnd.github+json", Authorization: "Bearer " + cfg.token, ...(body ? { "Content-Type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined });
+}
+const cloudPayload = () => JSON.stringify({ app: "ponteiro", updatedAt: new Date().toISOString(), data: { ...appBody(), L: S.L, del: S.del } }, null, 1);
+async function cloudPush() {
+  const cfg = cloudCfg(); if (!cfg || navigator.onLine === false) return;
+  if (cloudBusy) { cloudAgain = true; return; } cloudBusy = true;
+  try {
+    const content = b64utf8(cloudPayload()), message = "Atualiza " + CLOUD_FILE;
+    let r = await cloudReq(cfg, "PUT", { message, content, ...(cfg.sha ? { sha: cfg.sha } : {}) });
+    if (r.status === 409 || r.status === 422) { const g = await cloudReq(cfg, "GET"); const sha = g.ok ? (await g.json()).sha : null; r = await cloudReq(cfg, "PUT", { message, content, ...(sha ? { sha } : {}) }); }
+    const c2 = cloudCfg() || cfg;
+    if (r.ok) { const j = await r.json(); c2.sha = j.content && j.content.sha; c2.last = Date.now(); c2.err = ""; }
+    else c2.err = r.status === 401 || r.status === 403 ? "O GitHub recusou a chave. Gere outra e ative de novo." : r.status === 404 ? "Repositório não encontrado ou a chave não tem acesso a ele." : "O GitHub respondeu com erro " + r.status + ".";
+    cloudSaveCfg(c2);
+  } catch (e) { /* sem conexão: tenta de novo depois */ }
+  finally { cloudBusy = false; if (cloudAgain) { cloudAgain = false; cloudSoon(2000); } }
+}
+addEventListener("online", () => cloudSoon(1000));
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && cloudCfg()) { clearTimeout(cloudT); cloudPush(); } });
+function cloudStatus() {
+  const c = cloudCfg(); if (!c) return "Desativada";
+  if (c.err) return c.err;
+  return c.last ? "Ativa · última cópia " + new Date(c.last).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "Ativa";
+}
+function cloudSetup(onDone) {
+  const c = cloudCfg();
+  const el = openLayer("Cópia no GitHub", c ? `
+      <p>${esc(cloudStatus())}</p><p class="small">Repositório: ${esc(c.repo)} · arquivo ${CLOUD_FILE}</p>
+      <div class="sheetbar"><button type="button" class="btn primary" id="c_now">Copiar agora</button><button type="button" class="btn danger" id="c_off">Desativar</button></div>` : `
+      <label>Repositório privado<input id="c_repo" type="text" autocapitalize="off" spellcheck="false" value="${CLOUD_DEFAULT_REPO}"></label>
+      <label>Chave do GitHub<input id="c_tok" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <p class="small" id="c_msg"></p><div id="c_choice" class="sheetbar"></div>`, {
+    left: `<button class="btn ghost" data-act="close">Fechar</button>`, okLabel: c ? undefined : "Ativar" });
+  const done = () => { closeLayer(el); if (onDone) onDone(); };
+  if (c) {
+    el.querySelector("#c_now").onclick = async () => { el.querySelector("#c_now").disabled = true; await cloudPush(); done(); toast(cloudStatus()); };
+    el.querySelector("#c_off").onclick = ev => armButton(ev.currentTarget, "Toque de novo para desativar", () => { cloudSaveCfg(null); done(); });
+    return;
+  }
+  el.querySelector("[data-ok]").onclick = async () => {
+    const msg = t => { el.querySelector("#c_msg").textContent = t; };
+    const repo = el.querySelector("#c_repo").value.trim().replace(/^https?:\/\/github\.com\//, "").replace(/\/$/, ""), token = el.querySelector("#c_tok").value.trim();
+    if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { msg("Escreva o repositório como usuario/nome."); return; }
+    if (!token) { msg("Cole a chave do GitHub."); return; }
+    msg("Conectando…");
+    const cfg = { repo, token };
+    let r; try { r = await cloudReq(cfg, "GET"); } catch (e) { msg("Sem conexão com o GitHub. Tente de novo."); return; }
+    if (r.status === 401 || r.status === 403) { msg("O GitHub recusou a chave. Confira se ela dá acesso de leitura e escrita ao conteúdo desse repositório."); return; }
+    if (r.status === 404) {
+      const repoCheck = await fetch("https://api.github.com/repos/" + repo, { cache: "no-store", headers: { Accept: "application/vnd.github+json", Authorization: "Bearer " + token } }).catch(() => null);
+      if (!repoCheck || !repoCheck.ok) { msg("Não encontrei esse repositório com essa chave."); return; }
+      cloudSaveCfg(cfg); await cloudPush(); done(); toast(cloudStatus()); return;
+    }
+    if (!r.ok) { msg("O GitHub respondeu com erro " + r.status + "."); return; }
+    const j = await r.json(); cfg.sha = j.sha;
+    let remote = null; try { remote = JSON.parse(utf8b64(j.content || "")); } catch (e) { remote = null; }
+    if (!remote || !remote.data) { cloudSaveCfg(cfg); await cloudPush(); done(); toast(cloudStatus()); return; }
+    msg("Já existe uma cópia de " + new Date(remote.updatedAt).toLocaleString("pt-BR") + ". O que fazer?");
+    el.querySelector("#c_choice").innerHTML = `<button type="button" class="btn" id="c_keep">Enviar os dados deste aparelho</button><button type="button" class="btn primary" id="c_use">Usar a cópia</button>`;
+    el.querySelector("#c_keep").onclick = async () => { cloudSaveCfg(cfg); await cloudPush(); done(); toast(cloudStatus()); };
+    el.querySelector("#c_use").onclick = ev => armButton(ev.currentTarget, "Toque de novo: substitui este aparelho", () => { cloudSaveCfg(cfg); (d => { loadApp(d); S.L = d.L || {}; S.del = d.del || {}; saveCache(); renderAll(); })(remote.data); done(); toast("Cópia restaurada."); });
+  };
 }
 
 async function boot() {
@@ -1029,6 +1105,7 @@ function viewMore() {
     <div class="field"><span class="l">Semana começa</span>${seg("firstWeekday", [[1, "Segunda"], [0, "Domingo"]])}</div>
     <div class="field"><label class="l" for="dayEnd">O dia termina às</label><select id="dayEnd" class="dsel">${Array.from({ length: 13 }, (_, h) => `<option value="${h}" ${(st.dayEndHour || 0) === h ? "selected" : ""}>${pad(h)}:00${h === 0 ? " (meia-noite)" : ""}</option>`).join("")}</select></div>
   </div></section>
+  <section class="section"><h2>Cópia no GitHub</h2><div class="form"><div class="field"><span class="l">${esc(cloudStatus())}</span><button class="btn" data-act="cloud">Configurar</button></div></div></section>
   <section class="section"><h2>Dados</h2><div class="form">
     <div class="field"><span class="l">Relatório CSV</span><button class="btn" data-act="exportcsv">Exportar</button></div>
     <div class="field"><span class="l">Backup completo</span><button class="btn" data-act="exportjson">Exportar</button></div>
@@ -1416,6 +1493,7 @@ document.addEventListener("click", e => {
     case "exportcsv": offerFile("ponteiro-relatorio.csv", csvText()); break;
     case "exportjson": offerFile("ponteiro-backup.json", JSON.stringify({ ...appBody(), L: S.L, exportedAt: new Date().toISOString() }, null, 1)); break;
     case "clearex": clearExample(); break;
+    case "cloud": cloudSetup(() => renderAll()); break;
     case "syncon": syncSetup(); break;
     case "syncoff": syncOff(el); break;
     case "synccode": copyConn(); break;
@@ -1431,10 +1509,10 @@ setInterval(() => {
   for (const el of document.querySelectorAll("[data-reg]")) { const [a, b] = el.dataset.reg.split(":"); const g = regOf(a, b); if (g) el.textContent = fmtShortClock(runElapsed(g)); }
 }, 1000);
 setInterval(() => { if (Store.ready) renderAll(); }, 60000);
-window.PONTEIRO_BUILD = (b => { const d = new Date(Date.UTC(+b.slice(0, 4), +b.slice(4, 6) - 1, +b.slice(6, 8), +b.slice(8, 10), +b.slice(10, 12))); return pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); })("20261023075606");
+window.PONTEIRO_BUILD = (b => { const d = new Date(Date.UTC(+b.slice(0, 4), +b.slice(4, 6) - 1, +b.slice(6, 8), +b.slice(8, 10), +b.slice(10, 12))); return pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); })("20261023171153");
 boot();
 /* atualização automática: ao abrir, ao voltar para a tela e a cada 5 min, confere se há versão nova publicada e recarrega */
-const BUILD = "20261023075606";
+const BUILD = "20261023171153";
 let swReg = null;
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(() => {}));
 async function checkUpdate() {
