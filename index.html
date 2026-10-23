@@ -195,6 +195,11 @@ nav.tabs button[aria-current="page"]{color:var(--accent);font-weight:700}
 .ck .grip svg{width:18px;height:18px;fill:currentColor}
 .ck.dragging{position:relative;z-index:2;box-shadow:0 10px 24px rgba(0,0,0,.18);transform:scale(1.02);border-radius:10px;cursor:grabbing}
 .ck.pressing{background:var(--sunk)}
+.trow{box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:pointer;background:var(--surface)}
+.trow .grip{width:30px;height:30px;display:grid;place-items:center;color:var(--muted);touch-action:none;cursor:grab}
+.trow .grip svg{width:18px;height:18px;fill:currentColor}
+.trow.pressing{background:var(--sunk)}
+.trow.dragging{position:relative;z-index:2;box-shadow:0 10px 24px rgba(0,0,0,.18);transform:scale(1.02);border-radius:10px;cursor:grabbing}
 .addrow{display:flex;gap:8px}
 .addrow input{flex:1;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--ink);font-size:16px}
 .bigpct{display:flex;align-items:baseline;gap:10px}
@@ -332,7 +337,7 @@ const typeById = id => S.types.find(t => t.id === id);
 const childrenOf = pid => S.types.filter(t => (t.parent || null) === pid && !t.archived).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
 const topLevel = () => childrenOf(null);
 const colorOf = id => typeById(id)?.color || "#6B7C85";
-const GONE = { name: "Tipo removido", color: "#6B7C85", icon: "⏱️" };
+const GONE = { name: "Atividade removida", color: "#6B7C85", icon: "⏱️" };
 function descendants(id) { const out = [id]; for (const c of S.types.filter(t => t.parent === id)) out.push(...descendants(c.id)); return out; }
 
 const monthKey = ms => { const d = new Date(ms); return "log-" + d.getFullYear() + "-" + pad(d.getMonth() + 1); };
@@ -419,10 +424,20 @@ addEventListener("online", () => { Store.retry = 0; flush(); updateSync(); });
 addEventListener("offline", updateSync);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") flush(); else saveCache(); });
 addEventListener("pagehide", saveCache);
+function flattenTypes(list) {
+  if (!list.some(t => t.isGroup || t.parent)) return null;
+  const out = []; const byOrder = (a, b) => (a.order - b.order) || a.name.localeCompare(b.name);
+  const walk = pid => { for (const t of list.filter(x => (x.parent || null) === pid).sort(byOrder)) { if (t.isGroup) walk(t.id); else out.push({ ...t, parent: null }); } };
+  walk(null);
+  for (const t of list) if (!t.isGroup && !out.some(o => o.id === t.id)) out.push({ ...t, parent: null, isGroup: false });
+  out.forEach((t, i) => { t.order = i; t.isGroup = false; });
+  return out;
+}
 function loadApp(d) {
   S.types = d.types || []; S.lists = d.lists || []; S.running = (d.running || []).map(r => ({ ...r, regs: [] }));
   S.settings = { ...defaultSettings(), ...(d.settings || {}) }; S.example = !!d.example;
   if (d.settings && !d.settings.modeV2) { S.settings.startMode = "pause"; S.settings.modeV2 = true; if (Store.mode !== "boot") markApp(); }
+  const flat = flattenTypes(S.types); if (flat) { S.types = flat; if (Store.mode !== "boot") markApp(); }
 }
 function applySnap(snap) {
   for (const d of snap.docs) {
@@ -620,20 +635,18 @@ async function boot() {
 
 /* ---------- dados de exemplo (marcados como exemplo) ---------- */
 function seedExample() {
-  const T = (name, color, icon, parent = null, isGroup = false, order = 0) => { const t = { id: uid(), name, color, icon, parent, isGroup, order, archived: false }; S.types.push(t); return t; };
+  const T = (name, color, icon, order) => { const t = { id: uid(), name, color, icon, parent: null, isGroup: false, order, archived: false }; S.types.push(t); return t; };
   S.types = [];
-  const work = T("Trabalho", "#2F5BEA", "💼", null, true, 0);
-  const code = T("Código", "#2F5BEA", "💻", work.id, false, 0);
-  const meet = T("Reuniões", "#6C4AB6", "👥", work.id, false, 1);
-  const mail = T("Email", "#3E92CC", "📧", work.id, false, 2);
-  const home = T("Casa", "#F3A712", "🏠", null, true, 1);
-  const cook = T("Cozinhar", "#E4572E", "🍳", home.id, false, 0);
-  const clean = T("Limpeza", "#8D6A4F", "🧹", home.id, false, 1);
-  const sleep = T("Sono", "#6B7C85", "💤", null, false, 2);
-  const read = T("Leitura", "#0B9A93", "📚", null, false, 3);
-  const gym = T("Exercício", "#2E933C", "🏋️", null, false, 4);
-  const bus = T("Deslocamento", "#9BBF5A", "🚌", null, false, 5);
-  const fun = T("Lazer", "#C2378D", "🎮", null, false, 6);
+  const code = T("Código", "#2F5BEA", "💻", 0);
+  const meet = T("Reuniões", "#6C4AB6", "👥", 1);
+  const mail = T("Email", "#3E92CC", "📧", 2);
+  const cook = T("Cozinhar", "#E4572E", "🍳", 3);
+  const clean = T("Limpeza", "#8D6A4F", "🧹", 4);
+  const sleep = T("Sono", "#6B7C85", "💤", 5);
+  const read = T("Leitura", "#0B9A93", "📚", 6);
+  const gym = T("Exercício", "#2E933C", "🏋️", 7);
+  const bus = T("Deslocamento", "#9BBF5A", "🚌", 8);
+  const fun = T("Lazer", "#C2378D", "🎮", 9);
   S.L = {}; S.running = [];
   let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
   const today = sod(now());
@@ -752,7 +765,7 @@ const ICON = {
   check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   grip: '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>',
 };
-const TABS = [["now", "Agora"], ["log", "Histórico"], ["stats", "Gráficos"], ["lists", "Grupos"], ["types", "Tipos"], ["more", "Mais"]];
+const TABS = [["now", "Agora"], ["log", "Histórico"], ["stats", "Gráficos"], ["lists", "Grupos"], ["types", "Atividades"], ["more", "Mais"]];
 const LOGO = '<svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 12V6.5M12 12l4 2.5"/></svg>';
 
 /* ---------- renderização das abas ---------- */
@@ -764,6 +777,8 @@ function renderAll() {
   $("#top").innerHTML = `<div class="toprow"><div class="brand">${LOGO}Ponteiro</div><span id="sync">${syncChip()}</span></div>${extra}`;
   if (!Store.ready) { $("#main").innerHTML = `<p class="loading">Carregando seus registros…</p>`; return; }
   $("#main").innerHTML = ({ now: viewNow, log: viewLog, stats: viewStats, lists: viewLists, types: viewTypes, more: viewMore })[UI.tab]();
+  const tl = document.getElementById("typelist");
+  if (tl) enableReorder(tl, ids => { ids.forEach((tid, i) => { const t = typeById(tid); if (t) t.order = i; }); markApp(); renderAll(); });
 }
 const exampleBanner = () => S.example ? `<div class="banner"><span>Você está vendo <b>dados de exemplo</b> para conhecer o app.</span><button class="btn" data-act="clearex">Apagar exemplos</button></div>` : "";
 
@@ -790,7 +805,7 @@ function viewNow() {
   <section class="section"><div class="rowhead"><h2>Em andamento</h2><span class="sub">${S.running.length ? S.running.length + (S.running.length > 1 ? " atividades" : " atividade") : ""}</span></div>
   ${runs ? `<div class="runlist">${runs}</div>` : `<div class="empty">Nada rodando.</div>`}</section>
   <section class="section"><div class="rowhead"><h2>Começar</h2></div>
-  ${topLevel().length ? `<div class="grid">${grid}</div>` : `<div class="empty">Sem tipos de atividade ainda. <button class="btn ghost" data-act="newtype">Criar o primeiro</button></div>`}
+  ${topLevel().length ? `<div class="grid">${grid}</div>` : `<div class="empty">Nenhuma atividade. <button class="btn ghost" data-act="newtype">Criar a primeira</button></div>`}
   </section>`;
 }
 
@@ -836,7 +851,7 @@ function viewStats() {
   const tracked = [...raw.values()].reduce((x, y) => x + y, 0);
   const span = Math.max(0, Math.min(b, now()) - a); const untracked = Math.max(0, span - coveredMs(segs));
   const tops = topLevel().map(t => ({ id: t.id, name: t.name, color: t.color, ms: roll.get(t.id) || 0 })).filter(p => p.ms > 0).sort((x, y) => y.ms - x.ms);
-  for (const [id, ms] of raw) if (!typeById(id) && ms > 0) tops.push({ id, name: "Tipo removido", color: "#6B7C85", ms });
+  for (const [id, ms] of raw) if (!typeById(id) && ms > 0) tops.push({ id, name: "Atividade removida", color: "#6B7C85", ms });
   const showU = S.settings.showUntracked && untracked > 0;
   const parts = showU ? [...tops, { id: "_u", name: "Sem registro", color: "var(--untracked)", ms: untracked }] : tops;
   const denom = parts.reduce((x, y) => x + y.ms, 0);
@@ -848,7 +863,7 @@ function viewStats() {
   if (UI.statKind === "week" || UI.statKind === "month") { const days = []; for (let d = a; d < b; d = addDays(d, 1)) { const e = addDays(d, 1); const dt = new Date(d); days.push({ ms: coveredMs(segmentsIn(d, e)), label: fmtDayLong(d), tick: UI.statKind === "week" ? DIAS[dt.getDay()].slice(0, 3) : String(dt.getDate()) }); } perDay = `<div class="chartcard">${barsSVG(days)}</div>`; }
   if (UI.statKind === "year") { const ms = []; for (let m = 0; m < 12; m++) { const s = new Date(new Date(a).getFullYear(), m, 1).getTime(), e = new Date(new Date(a).getFullYear(), m + 1, 1).getTime(); ms.push({ ms: coveredMs(segmentsIn(s, e)), label: MESES[m], tick: MESES[m].slice(0, 1).toUpperCase() }); } perDay = `<div class="chartcard">${barsSVG(ms)}</div>`; }
   return `<div class="chartcard">${donutSVG(parts, denom, fmtDur(tracked), "registrado")}
-    <div class="kv"><span>Registrado <b>${fmtDur(tracked)}</b></span>${S.settings.showUntracked ? `<span>Sem registro <b>${fmtDur(untracked)}</b></span>` : ""}<span>Tipos <b>${tops.length}</b></span></div></div>
+    <div class="kv"><span>Registrado <b>${fmtDur(tracked)}</b></span>${S.settings.showUntracked ? `<span>Sem registro <b>${fmtDur(untracked)}</b></span>` : ""}<span>Atividades <b>${tops.length}</b></span></div></div>
   ${parts.length ? `<div class="list">${rows}</div>` : `<div class="empty">Nada registrado neste período.</div>`}
   ${perDay}`;
 }
@@ -863,13 +878,11 @@ function viewLists() {
 }
 
 function viewTypes() {
-  const row = (t, child) => `<button class="item ${child ? "indent" : ""}" style="--c:${t.color}" data-act="edittype" data-id="${t.id}"><span class="dot em">${esc(t.icon)}</span><span class="nm">${esc(t.name)}</span><span class="du sub">${t.isGroup ? childrenOf(t.id).length + " tipos" : ""}</span><span class="tm">${t.isGroup ? "Pasta" : child ? "Na pasta" : "Tipo"}</span></button>`;
-  let rows = ""; for (const t of topLevel()) { rows += row(t, false); if (t.isGroup) for (const c of childrenOf(t.id)) rows += row(c, true); }
-  const arch = S.types.filter(t => t.archived);
-  return `<section class="section"><div class="rowhead"><h2>Tipos e pastas</h2><div style="display:flex;gap:8px"><button class="btn" data-act="newgroup">Nova pasta</button><button class="btn primary" data-act="newtype">Novo tipo</button></div></div>
-  ${rows ? `<div class="list">${rows}</div>` : `<div class="empty">Nenhum tipo ainda.</div>`}</section>
-  ${arch.length ? `<section class="section"><div class="rowhead"><h2>Arquivados</h2><button class="btn ghost" data-act="toggleArch">${UI.showArchived ? "Esconder" : "Mostrar (" + arch.length + ")"}</button></div>${UI.showArchived ? `<div class="list">${arch.map(t => row(t, false)).join("")}</div>` : ""}</section>` : ""}
-`;
+  const row = (t, drag) => `<div class="item trow" role="button" tabindex="0" style="--c:${t.color}" data-act="edittype" data-id="${t.id}" ${drag ? `data-rid="${t.id}"` : ""}><span class="dot em">${esc(t.icon)}</span><span class="nm">${esc(t.name)}</span>${drag ? `<span class="grip" aria-label="Arrastar para reordenar">${ICON.grip}</span>` : "<span></span>"}</div>`;
+  const act = topLevel(); const arch = S.types.filter(t => t.archived);
+  return `<section class="section"><div class="rowhead"><h2>Atividades</h2><button class="btn primary" data-act="newtype">${ICON.plus} Nova atividade</button></div>
+  ${act.length ? `<div class="list" id="typelist">${act.map(t => row(t, true)).join("")}</div>` : `<div class="empty">Nenhuma atividade.</div>`}</section>
+  ${arch.length ? `<section class="section"><div class="rowhead"><h2>Arquivadas</h2><button class="btn ghost" data-act="toggleArch">${UI.showArchived ? "Esconder" : "Mostrar (" + arch.length + ")"}</button></div>${UI.showArchived ? `<div class="list">${arch.map(t => row(t, false)).join("")}</div>` : ""}</section>` : ""}`;
 }
 
 function viewMore() {
@@ -970,7 +983,7 @@ function editLog(id) {
   const l = id ? allLogs().find(x => x.id === id) : null;
   const def = l || (() => { const base = addDays(sod(now()), UI.histDay); const e = UI.histDay === 0 ? now() : base + 12 * HOUR; return { typeId: topLevel().flatMap(t => t.isGroup ? childrenOf(t.id) : [t])[0]?.id, start: e - HOUR, end: e, comment: "" }; })();
   openLayer(l ? "Editar intervalo" : "Novo intervalo", `
-    <label>Tipo de atividade<select id="f_type">${typeOptions(def.typeId)}</select></label>
+    <label>Atividade<select id="f_type">${typeOptions(def.typeId)}</select></label>
     <div class="tf"><label for="f_s">Início</label><div class="tfrow"><input id="f_s" type="datetime-local" step="1" value="${toLocalInput(def.start)}"><button type="button" class="btn" data-now="f_s">Agora</button></div></div>
     <div class="tf"><label for="f_e">Fim</label><div class="tfrow"><input id="f_e" type="datetime-local" step="1" value="${toLocalInput(def.end)}"><button type="button" class="btn primary" data-now="f_e">Agora</button></div></div>
     <label>Comentário<textarea id="f_c" class="note" style="min-height:180px">${esc(def.comment)}</textarea></label>
@@ -980,7 +993,7 @@ function editLog(id) {
     onMount: el => {
       el.querySelectorAll("[data-now]").forEach(b => b.onclick = () => { const i = $("#" + b.dataset.now, el); i.value = toLocalInput(now()); i.dispatchEvent(new Event("change")); $("#f_msg", el).textContent = ""; });
       el.querySelector("[data-ok]").onclick = () => { const typeId = $("#f_type", el).value, s = fromLocalInput($("#f_s", el).value), e = fromLocalInput($("#f_e", el).value);
-        if (!typeId) { $("#f_msg", el).textContent = "Escolha um tipo de atividade."; return; }
+        if (!typeId) { $("#f_msg", el).textContent = "Escolha uma atividade."; return; }
         if (!(e > s)) { $("#f_msg", el).textContent = "O fim precisa ser depois do início."; return; }
         if (l) removeLog(l.id); addLog({ id: l ? l.id : uid(), typeId, start: s, end: e, comment: $("#f_c", el).value.trim() });
         closeLayer(el); toast(l ? "Intervalo atualizado." : "Intervalo adicionado."); renderAll(); };
@@ -988,36 +1001,30 @@ function editLog(id) {
     } });
 }
 
-function editType(id, asGroup) {
-  const t = id ? typeById(id) : { name: "", color: COLORS[(S.types.length * 5) % COLORS.length], icon: asGroup ? "🗂️" : "⏱️", parent: UI.openGroup && !asGroup ? UI.openGroup : null, isGroup: !!asGroup, archived: false };
+function editType(id) {
+  const t = id ? typeById(id) : { name: "", color: COLORS[(S.types.length * 5) % COLORS.length], icon: "⏱️", archived: false };
   const draft = { color: t.color, icon: t.icon };
-  const groups = S.types.filter(g => g.isGroup && g.id !== id && !descendants(id || "").includes(g.id) && !g.archived);
-  const nLogs = id ? allLogs().filter(l => descendants(id).includes(l.typeId)).length : 0;
-  const what = t.isGroup ? "pasta" : "tipo";
-  openLayer(id ? "Editar " + what : (t.isGroup ? "Nova pasta" : "Novo tipo"), `
+  const nLogs = id ? allLogs().filter(l => l.typeId === id).length : 0;
+  openLayer(id ? "Editar atividade" : "Nova atividade", `
     <div class="iconpick" style="--c:${draft.color}"><span class="cur em" id="t_cur">${esc(draft.icon)}</span><button class="btn" id="t_icon">Escolher ícone</button></div>
     <label>Nome<input id="t_n" type="text" maxlength="40" value="${esc(t.name)}" placeholder="Nome"></label>
-    <label>Dentro da pasta<select id="t_p"><option value="">Nenhuma (nível principal)</option>${groups.map(g => `<option value="${g.id}" ${g.id === t.parent ? "selected" : ""}>${esc(g.icon)} ${esc(g.name)}</option>`).join("")}</select></label>
     <label>Cor<div class="swatches" id="t_col">${COLORS.map(c => `<button type="button" style="--c:${c}" data-c="${c}" aria-label="Cor ${c}" aria-pressed="${c === draft.color}"></button>`).join("")}</div></label>
-    ${id ? `<label class="check"><input id="t_ar" type="checkbox" ${t.archived ? "checked" : ""}> Arquivado</label>` : ""}
-    <p class="small" id="t_msg">${id && nLogs ? `Apagar ${t.isGroup ? "a pasta apaga os tipos dentro dela e" : "este tipo apaga"} ${nLogs} item${nLogs > 1 ? "s" : ""} do histórico. Arquivar mantém o histórico.` : ""}</p>
-    ${id ? `<div class="sheetbar"><button class="btn danger" id="t_del">Apagar ${what}</button></div>` : ""}`, {
+    ${id ? `<label class="check"><input id="t_ar" type="checkbox" ${t.archived ? "checked" : ""}> Arquivada</label>` : ""}
+    <p class="small" id="t_msg">${id && nLogs ? `Apagar esta atividade apaga ${nLogs} item${nLogs > 1 ? "s" : ""} do histórico. Arquivar mantém o histórico.` : ""}</p>
+    ${id ? `<div class="sheetbar"><button class="btn danger" id="t_del">Apagar atividade</button></div>` : ""}`, {
     okLabel: "Salvar", focus: id ? null : "#t_n",
     onMount: el => {
       $("#t_col", el).onclick = e => { const b = e.target.closest("[data-c]"); if (!b) return; draft.color = b.dataset.c; el.querySelectorAll("#t_col button").forEach(x => x.setAttribute("aria-pressed", x === b)); $(".iconpick", el).style.setProperty("--c", draft.color); };
       $("#t_icon", el).onclick = () => emojiPicker(draft.icon, e => { draft.icon = e; $("#t_cur", el).textContent = e; });
       $("#t_cur", el).onclick = () => $("#t_icon", el).click();
       el.querySelector("[data-ok]").onclick = () => { const name = $("#t_n", el).value.trim(); if (!name) { $("#t_msg", el).textContent = "Dê um nome."; $("#t_n", el).focus(); return; }
-        const parent = $("#t_p", el).value || null;
-        if (id) Object.assign(t, { name, parent, color: draft.color, icon: draft.icon, archived: !!$("#t_ar", el)?.checked });
-        else S.types.push({ id: uid(), name, parent, color: draft.color, icon: draft.icon, isGroup: !!asGroup, order: S.types.length, archived: false });
+        if (id) Object.assign(t, { name, color: draft.color, icon: draft.icon, archived: !!$("#t_ar", el)?.checked });
+        else S.types.push({ id: uid(), name, parent: null, color: draft.color, icon: draft.icon, isGroup: false, order: S.types.reduce((m, x) => Math.max(m, x.order + 1), 0), archived: false });
         markApp(); closeLayer(el); toast("Salvo."); renderAll(); };
       if (id) $("#t_del", el).onclick = ev => armButton(ev.currentTarget, "Toque de novo para apagar", () => {
-        const ids = descendants(id);
-        dropLogs(l => ids.includes(l.typeId));
-        S.types = S.types.filter(x => !ids.includes(x.id)); S.running = S.running.filter(r => !ids.includes(r.typeId));
-        if (ids.includes(UI.openGroup)) UI.openGroup = null;
-        markApp(); closeLayer(el); toast("Apagado."); renderAll(); });
+        dropLogs(l => l.typeId === id);
+        S.types = S.types.filter(x => x.id !== id); S.running = S.running.filter(r => r.typeId !== id);
+        markApp(); closeLayer(el); toast("Apagada."); renderAll(); });
     } });
 }
 
@@ -1142,9 +1149,9 @@ function enableReorder(list, onDone) {
 function csvText() {
   const q = v => /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
   const f = ms => { const d = new Date(ms); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + " " + fmtHM(ms); };
-  const lines = ["Tipo de atividade,Pasta,Linha,Início,Fim,Duração (h:mm),Duração (h),Comentário"];
+  const lines = ["Atividade,Linha,Início,Fim,Duração (h:mm),Duração (h),Comentário"];
   for (const l of allLogs().sort((a, b) => a.start - b.start)) { const t = typeById(l.typeId); const g = t && t.parent && typeById(t.parent); const m = Math.round((l.kind === "reg" ? (l.ms ?? l.end - l.start) : l.end - l.start) / MIN);
-    lines.push([q(t ? t.name : "Tipo removido"), q(g ? g.name : ""), l.kind === "reg" ? "Registro" : "Intervalo", f(l.start), f(l.end), Math.floor(m / 60) + ":" + pad(m % 60), (m / 60).toFixed(2), q(l.comment || "")].join(",")); }
+    lines.push([q(t ? t.name : "Atividade removida"), l.kind === "reg" ? "Registro" : "Intervalo", f(l.start), f(l.end), Math.floor(m / 60) + ":" + pad(m % 60), (m / 60).toFixed(2), q(l.comment || "")].join(",")); }
   return lines.join("\n");
 }
 async function offerFile(filename, text) {
@@ -1191,7 +1198,7 @@ function importFile(file) {
   fr.onload = () => {
     let res; try { res = parseImport(String(fr.result)); } catch (e) { toast(e.message || "Não foi possível ler o arquivo."); return; }
     const nLogs = Object.values(res.data.L).flat().length;
-    openLayer("Importar backup", `<p>Backup do ${esc(res.kind)}: ${res.data.types.length} tipos e ${nLogs} itens de histórico em <b>${esc(file.name)}</b>.</p><p class="small">Importar substitui seus tipos e seu histórico atuais. Exporte um backup antes se quiser guardar o que tem.</p>
+    openLayer("Importar backup", `<p>Backup do ${esc(res.kind)}: ${res.data.types.length} atividades e ${nLogs} itens de histórico em <b>${esc(file.name)}</b>.</p><p class="small">Importar substitui suas atividades e seu histórico atuais. Exporte um backup antes se quiser guardar o que tem.</p>
       <div class="sheetbar"><button class="btn danger" id="i_go">Substituir meus dados</button></div>`, {
       onMount: el => { $("#i_go", el).onclick = ev => armButton(ev.currentTarget, "Toque de novo para confirmar", () => {
         dropLogs(() => true);
@@ -1205,6 +1212,7 @@ function importFile(file) {
 /* ---------- eventos ---------- */
 function toast(msg) { const r = $("#toastRoot"); r.innerHTML = `<div class="toast">${esc(msg)}</div>`; clearTimeout(toast.t); toast.t = setTimeout(() => { r.innerHTML = ""; }, 2800); }
 document.addEventListener("click", e => {
+  if (e.target.closest("[data-suppress]")) return;
   const el = e.target.closest("[data-act]"); if (!el) return;
   const { act, id, k, d, v, run } = el.dataset;
   switch (act) {
@@ -1230,7 +1238,6 @@ document.addEventListener("click", e => {
     case "newlist": newList(); break;
     case "openlist": openList(id); break;
     case "newtype": editType(null, false); break;
-    case "newgroup": editType(null, true); break;
     case "edittype": editType(id); break;
     case "toggleArch": UI.showArchived = !UI.showArchived; renderAll(); break;
     case "set": { const cur = S.settings[k]; S.settings[k] = typeof cur === "number" ? +v : typeof cur === "boolean" ? v === "true" : v; markApp(); renderAll(); break; }
@@ -1244,7 +1251,7 @@ document.addEventListener("click", e => {
   }
 });
 document.addEventListener("change", e => { if (e.target.id === "importFile" && e.target.files[0]) { importFile(e.target.files[0]); e.target.value = ""; } });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#layers").children.length) closeLayer(); });
+document.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches(".trow")) { e.preventDefault(); e.target.click(); return; } if (e.key === "Escape" && $("#layers").children.length) closeLayer(); });
 
 /* relógios ao vivo: só os números a cada segundo; a tela inteira a cada minuto */
 setInterval(() => {
@@ -1254,7 +1261,7 @@ setInterval(() => {
 setInterval(() => { if (Store.ready) renderAll(); }, 60000);
 boot();
 /* atualização automática: ao abrir, ao voltar para a tela e a cada 5 min, confere se há versão nova publicada e recarrega */
-const BUILD = "20261023062700";
+const BUILD = "20261023063326";
 let swReg = null;
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(() => {}));
 async function checkUpdate() {
