@@ -224,6 +224,10 @@ nav.tabs button[aria-current="page"]{color:var(--accent);font-weight:700}
 .ctx .ico{grid-row:auto}
 .ctx .t{font-weight:700}
 .ctx .s{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.regctl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:14px}
+.rbig{font-family:var(--mono);font-size:36px;font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:-.02em;flex:1 1 100%;line-height:1.1}
+.rbig.paused{color:var(--muted)}
+.regctl .btn{flex:1 1 0;padding-block:12px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .swatches{display:flex;flex-wrap:wrap;gap:8px}
 .swatches button{width:34px;height:34px;border-radius:50%;border:2px solid transparent;background:var(--c)}
@@ -897,13 +901,39 @@ function noteEditor({ title, ctx, value, placeholder, onSave }) {
     onMount: el => { el.querySelector("[data-ok]").onclick = () => { onSave(el.querySelector("#n_t").value.trim()); closeLayer(el); renderAll(); }; } });
 }
 const ctxBox = (t, line) => `<div class="ctx" style="--c:${t.color}"><span class="ico em">${esc(t.icon)}</span><span><span class="t">${esc(t.name)}</span><br><span class="s">${line}</span></span></div>`;
+/* tela da atividade / do registro em andamento: cronômetro ao vivo, pausar/retomar, encerrar e comentário */
+function liveEditor({ title, ctx, clockAttr, clockText, isRunning, value, onSave, onToggle, stopLabel, onStop }) {
+  openLayer(title, `${ctx}
+    <div class="regctl"><span class="rbig" ${clockAttr}>${clockText}</span>
+      <button class="btn" id="lv_pp"></button>
+      <button class="btn danger" id="lv_stop">${ICON.stop} ${esc(stopLabel)}</button></div>
+    <label for="n_t" class="small" style="font-weight:700">Comentário</label><textarea id="n_t" class="note">${esc(value)}</textarea>`, {
+    okLabel: "Salvar",
+    onMount: el => {
+      const note = () => el.querySelector("#n_t").value.trim();
+      const pp = el.querySelector("#lv_pp");
+      const label = () => { const on = isRunning(); pp.innerHTML = on ? ICON.pause + " Pausar" : ICON.play + " Retomar"; el.querySelector(".rbig").classList.toggle("paused", !on); };
+      label();
+      el.querySelector("[data-ok]").onclick = () => { onSave(note()); closeLayer(el); renderAll(); };
+      pp.onclick = () => { onSave(note()); onToggle(); label(); };
+      el.querySelector("#lv_stop").onclick = () => { onSave(note()); closeLayer(el); onStop(); };
+    } });
+}
 function editRunNote(id) {
   const r = runById(id); if (!r) return; const t = typeById(r.typeId) || GONE;
-  noteEditor({ title: "Comentário", ctx: ctxBox(t, (r.state === "running" ? "Rodando" : "Pausado") + " · desde " + fmtHM(r.started)), value: r.comment, placeholder: "", onSave: v => { r.comment = v; markApp(); } });
+  liveEditor({ title: t.name, ctx: ctxBox(t, "Desde " + fmtHM(r.started)), clockAttr: `data-run="${r.id}"`, clockText: fmtClock(runElapsed(r)),
+    isRunning: () => runById(id)?.state === "running", value: r.comment,
+    onSave: v => { const x = runById(id); if (x && x.comment !== v) { x.comment = v; markApp(); } },
+    onToggle: () => { const x = runById(id); if (!x) return; if (x.state === "running") pauseRun(id); else resumeRun(id); },
+    stopLabel: "Parar atividade", onStop: () => stopRun(id) });
 }
 function editRegNote(runId, regId) {
   const r = runById(runId), g = regOf(runId, regId); if (!g) return; const t = typeById(r.typeId) || GONE;
-  noteEditor({ title: "Registro", ctx: ctxBox(t, "Registro desde " + fmtHM(g.started) + " · " + fmtShortClock(runElapsed(g))), value: g.comment, placeholder: "", onSave: v => { g.comment = v; markApp(); } });
+  liveEditor({ title: "Registro", ctx: ctxBox(t, "Registro desde " + fmtHM(g.started)), clockAttr: `data-reg="${r.id}:${g.id}"`, clockText: fmtShortClock(runElapsed(g)),
+    isRunning: () => regOf(runId, regId)?.state === "running", value: g.comment,
+    onSave: v => { const x = regOf(runId, regId); if (x && x.comment !== v) { x.comment = v; markApp(); } },
+    onToggle: () => { const x = regOf(runId, regId); if (!x) return; if (x.state === "running") pauseReg(runId, regId); else resumeReg(runId, regId); },
+    stopLabel: "Encerrar registro", onStop: () => stopReg(runId, regId) });
 }
 function editSavedReg(id) {
   const rg = allLogs().find(x => x.id === id); if (!rg) return; const t = typeById(rg.typeId) || GONE;
@@ -1203,7 +1233,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#layers
 
 /* relógios ao vivo: só os números a cada segundo; a tela inteira a cada minuto */
 setInterval(() => {
-  for (const el of document.querySelectorAll("[data-run]")) { if (!el.classList.contains("clock")) continue; const r = runById(el.dataset.run); if (r) el.textContent = fmtClock(runElapsed(r)); }
+  for (const el of document.querySelectorAll("[data-run]")) { if (!el.classList.contains("clock") && !el.classList.contains("rbig")) continue; const r = runById(el.dataset.run); if (r) el.textContent = fmtClock(runElapsed(r)); }
   for (const el of document.querySelectorAll("[data-reg]")) { const [a, b] = el.dataset.reg.split(":"); const g = regOf(a, b); if (g) el.textContent = fmtShortClock(runElapsed(g)); }
 }, 1000);
 setInterval(() => { if (Store.ready) renderAll(); }, 60000);
