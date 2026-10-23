@@ -195,6 +195,20 @@ nav.tabs button[aria-current="page"]{color:var(--accent);font-weight:700}
 .ck .grip svg{width:18px;height:18px;fill:currentColor}
 .ck.dragging{position:relative;z-index:2;box-shadow:0 10px 24px rgba(0,0,0,.18);transform:scale(1.02);border-radius:10px;cursor:grabbing}
 .ck.pressing{background:var(--sunk)}
+.ck.tpl{grid-template-columns:1fr auto auto;cursor:default}
+.jplay{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:22px 16px;border:0;border-radius:var(--r);background:var(--accent);color:var(--accent-ink);font-family:var(--display);font-size:20px;font-weight:700;box-shadow:var(--shadow)}
+.jplay svg{width:26px;height:26px;fill:currentColor;stroke:none}
+.jfeed{display:flex;flex-direction:column;gap:8px}
+.jday{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-top:8px}
+.jentry{display:flex;flex-direction:column;gap:6px;align-items:flex-start;text-align:left;width:100%;background:var(--surface);border:0;border-left:4px solid var(--accent);border-radius:var(--r);box-shadow:var(--shadow);padding:12px 14px}
+.jentry .jt{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.jentry .jx{overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.jchips{display:flex;flex-wrap:wrap;gap:6px}
+.jchips .chip{text-transform:none;letter-spacing:0;font-size:12px}
+.jgroup{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.jgh{display:flex;align-items:center;gap:8px}
+.jgh b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jpct{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:15px}
 .trow{box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:pointer;background:var(--surface)}
 .trow .grip{width:30px;height:30px;display:grid;place-items:center;color:var(--muted);touch-action:none;cursor:grab}
 .trow .grip svg{width:18px;height:18px;fill:currentColor}
@@ -334,7 +348,7 @@ let S = { types: [], lists: [], settings: defaultSettings(), running: [], L: {},
 const UI = { tab: "now", openGroup: null, histDay: 0, statKind: "week", statOff: 0, statOpen: {}, showArchived: false };
 
 const typeById = id => S.types.find(t => t.id === id);
-const childrenOf = pid => S.types.filter(t => (t.parent || null) === pid && !t.archived).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+const childrenOf = pid => S.types.filter(t => (t.parent || null) === pid && !t.archived && !t.system).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
 const topLevel = () => childrenOf(null);
 const colorOf = id => typeById(id)?.color || "#6B7C85";
 const GONE = { name: "Atividade removida", color: "#6B7C85", icon: "⏱️" };
@@ -342,15 +356,19 @@ function descendants(id) { const out = [id]; for (const c of S.types.filter(t =>
 
 const monthKey = ms => { const d = new Date(ms); return "log-" + d.getFullYear() + "-" + pad(d.getMonth() + 1); };
 const allLogs = () => Object.values(S.L).flat();
-const timeLogs = () => allLogs().filter(l => l.kind !== "reg");
+const timeLogs = () => allLogs().filter(l => !l.kind);
+const JOURNAL = "journal";
+function ensureJournal() { if (S.types.some(t => t.id === JOURNAL)) return false; S.types.push({ id: JOURNAL, name: "Diário", color: "#0B7A75", icon: "📓", parent: null, isGroup: false, order: -1, archived: false, system: true }); return true; }
+const journalEntries = () => allLogs().filter(l => l.kind === "journal").sort((a, b) => b.start - a.start);
+const groupPct = g => g.items.length ? Math.round(g.items.filter(i => i.done).length / g.items.length * 100) : 0;
 function tomb(k, id) { const a = (S.del[k] ??= []); if (!a.includes(id)) a.push(id); if (a.length > 3000) a.splice(0, a.length - 3000); }
 function addLog(it) { const k = monthKey(it.start); (S.L[k] ??= []).push(it); if (S.del[k]) S.del[k] = S.del[k].filter(x => x !== it.id); markDirty(k); }
 function removeLog(id) { for (const k in S.L) { const i = S.L[k].findIndex(x => x.id === id); if (i >= 0) { S.L[k].splice(i, 1); tomb(k, id); markDirty(k); return; } } }
 function dropLogs(pred) { for (const k in S.L) { const keep = []; let ch = false; for (const l of S.L[k]) { if (pred(l)) { tomb(k, l.id); ch = true; } else keep.push(l); } if (ch) { S.L[k] = keep; markDirty(k); } } }
-function logInterval(typeId, start, end, comment) {
+function logInterval(typeId, start, end, comment, extra) {
   if (!(end > start)) return;
   if ((end - start) / 1000 < (S.settings.minSec || 0)) return;
-  addLog({ id: uid(), typeId, start, end, comment: comment || "" });
+  addLog({ id: uid(), typeId, start, end, comment: comment || "", ...(extra || {}) });
 }
 
 /* ---------- armazenamento: conta (db do artefato) com cópia no aparelho para uso offline ---------- */
@@ -438,6 +456,7 @@ function loadApp(d) {
   S.settings = { ...defaultSettings(), ...(d.settings || {}) }; S.example = !!d.example;
   if (d.settings && !d.settings.modeV2) { S.settings.startMode = "pause"; S.settings.modeV2 = true; if (Store.mode !== "boot") markApp(); }
   const flat = flattenTypes(S.types); if (flat) { S.types = flat; if (Store.mode !== "boot") markApp(); }
+  if (ensureJournal() && Store.mode !== "boot") markApp();
 }
 function applySnap(snap) {
   for (const d of snap.docs) {
@@ -678,6 +697,13 @@ function seedExample() {
     L("Sair de casa", "🔑", [["Chaves", true], ["Carteira", true], ["Celular carregado", true], ["Garrafa de água", false]]),
     L("Fim do expediente", "💼", [["Responder emails pendentes", false], ["Anotar tarefas de amanhã", false], ["Fechar abas", false]]),
   ];
+  ensureJournal();
+  for (const [dd, h, m, mins, text, li, done] of [[1, 7, 5, 18, "Acordei cedo, banho rápido antes do trabalho.", 0, [1, 1, 1, 0, 1]], [2, 6, 50, 22, "Dia corrido. Separei as coisas na noite anterior.", 1, [1, 1, 1, 1]]]) {
+    const st = addDays(today, -dd) + h * HOUR + m * MIN, en = st + mins * MIN, eid = uid();
+    logInterval(JOURNAL, st, en, text, { entry: eid });
+    const g = groupCopy(S.lists[li]); g.items.forEach((it, i) => it.done = !!done[i]);
+    addLog({ id: eid, kind: "journal", start: st, end: en, ms: en - st, text, checks: [g] });
+  }
   S.example = true;
   markApp(); Object.keys(S.L).forEach(markDirty);
 }
@@ -711,15 +737,17 @@ function startType(typeId) {
   S.running.unshift({ id: uid(), typeId, state: "running", since: at, acc: 0, started: at, comment: "", regs: [] });
   markApp(); renderAll();
 }
-function pauseRun(id, quiet) { const r = runById(id); if (!r || r.state !== "running") return; const t = now(); logInterval(r.typeId, r.since, t, r.comment); r.acc += t - r.since; r.state = "paused"; markApp(); if (!quiet) renderAll(); }
+function pauseRun(id, quiet) { const r = runById(id); if (!r || r.state !== "running") return; const t = now(); logInterval(r.typeId, r.since, t, r.comment, r.typeId === JOURNAL ? { entry: r.id } : null); r.acc += t - r.since; r.state = "paused"; markApp(); if (!quiet) renderAll(); }
 function resumeRun(id) { const r = runById(id); if (!r || r.state === "running") return; const at = startPoint(id); haltOthers(id); r.state = "running"; r.since = at; markApp(); renderAll(); }
 function stopRun(id, quiet) {
   const r = runById(id); if (!r) return;
   const total = runElapsed(r);
-  if (r.state === "running") logInterval(r.typeId, r.since, now(), r.comment);
+  const end = now();
+  if (r.state === "running") logInterval(r.typeId, r.since, end, r.comment, r.typeId === JOURNAL ? { entry: r.id } : null);
+  if (r.typeId === JOURNAL) addLog({ id: r.id, kind: "journal", start: r.started, end, ms: total, text: r.comment || "", checks: clone(r.checks || []) });
   for (const g of [...(r.regs || [])]) stopReg(r.id, g.id, true);
   S.running = S.running.filter(x => x.id !== id); markApp();
-  if (!quiet) { toast((typeById(r.typeId) || GONE).name + ": " + fmtDur(total) + " registrados."); renderAll(); }
+  if (!quiet) { toast(r.typeId === JOURNAL ? "Registro salvo: " + fmtDur(total) + "." : (typeById(r.typeId) || GONE).name + ": " + fmtDur(total) + " registrados."); renderAll(); }
 }
 /* registro: cronômetro próprio dentro da atividade, que não pausa a atividade */
 function startReg(runId) { const r = runById(runId); if (!r) return; const t = now(); (r.regs ??= []).push({ id: uid(), state: "running", since: t, acc: 0, started: t, comment: "" }); markApp(); renderAll(); }
@@ -751,6 +779,7 @@ const ICON = {
   now: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>',
   log: '<svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>',
   stats: '<svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>',
+  journal: '<svg viewBox="0 0 24 24"><path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v16H6.5A1.5 1.5 0 0 0 5 20.5z"/><path d="M5 20.5A1.5 1.5 0 0 0 6.5 22H19v-3"/><path d="M9 8h6M9 12h4"/></svg>',
   lists: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="5" rx="1.5"/><path d="M4.5 6.5l1 1 1.8-2"/><rect x="3" y="14" width="5" height="5" rx="1.5"/><path d="M11 6.5h10M11 16.5h10"/></svg>',
   types: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>',
   more: '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>',
@@ -765,7 +794,7 @@ const ICON = {
   check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   grip: '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>',
 };
-const TABS = [["now", "Agora"], ["log", "Histórico"], ["stats", "Gráficos"], ["lists", "Grupos"], ["types", "Atividades"], ["more", "Mais"]];
+const TABS = [["now", "Agora"], ["journal", "Diário"], ["log", "Histórico"], ["stats", "Gráficos"], ["types", "Atividades"], ["more", "Mais"]];
 const LOGO = '<svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 12V6.5M12 12l4 2.5"/></svg>';
 
 /* ---------- renderização das abas ---------- */
@@ -776,7 +805,7 @@ function renderAll() {
   if (UI.tab === "stats") { const r = periodRange(UI.statKind, UI.statOff); extra = `<div class="seg" role="group" aria-label="Período">${[["day", "Dia"], ["week", "Semana"], ["month", "Mês"], ["year", "Ano"]].map(([k, l]) => `<button data-act="skind" data-k="${k}" aria-pressed="${UI.statKind === k}">${l}</button>`).join("")}</div><div class="pnav"><button class="iconbtn" data-act="soff" data-d="-1" aria-label="Período anterior">${ICON.left}</button><div class="lbl">${esc(periodLabel(UI.statKind, r))}</div><button class="iconbtn" data-act="soff" data-d="1" aria-label="Próximo período" ${UI.statOff >= 0 ? "disabled" : ""}>${ICON.right}</button></div>`; }
   $("#top").innerHTML = `<div class="toprow"><div class="brand">${LOGO}Ponteiro</div><span id="sync">${syncChip()}</span></div>${extra}`;
   if (!Store.ready) { $("#main").innerHTML = `<p class="loading">Carregando seus registros…</p>`; return; }
-  $("#main").innerHTML = ({ now: viewNow, log: viewLog, stats: viewStats, lists: viewLists, types: viewTypes, more: viewMore })[UI.tab]();
+  $("#main").innerHTML = ({ now: viewNow, log: viewLog, stats: viewStats, journal: viewJournal, types: viewTypes, more: viewMore })[UI.tab]();
   const tl = document.getElementById("typelist");
   if (tl) enableReorder(tl, ids => { ids.forEach((tid, i) => { const t = typeById(tid); if (t) t.order = i; }); markApp(); renderAll(); });
 }
@@ -789,7 +818,7 @@ function viewNow() {
         <span class="tag"></span><span><span class="rc" data-reg="${r.id}:${g.id}">${fmtShortClock(runElapsed(g))}</span><br><span class="rt ${g.comment ? "has" : ""}">${g.comment ? esc(g.comment) : "Registro " + (i + 1)}</span></span>
         ${g.state === "running" ? `<button class="iconbtn sm" data-act="regpause" data-run="${r.id}" data-id="${g.id}" aria-label="Pausar registro">${ICON.pause}</button>` : `<button class="iconbtn sm" data-act="regresume" data-run="${r.id}" data-id="${g.id}" aria-label="Retomar registro">${ICON.play}</button>`}
         <button class="iconbtn sm" data-act="regstop" data-run="${r.id}" data-id="${g.id}" aria-label="Encerrar registro">${ICON.stop}</button></div>`).join("");
-    return `<div class="run ${r.state}" style="--c:${t.color}" data-act="rnote" data-id="${r.id}">
+    return `<div class="run ${r.state}" style="--c:${t.color}" data-act="${r.typeId === JOURNAL ? "jopen" : "rnote"}" data-id="${r.id}">
       <div class="main"><div class="ico em">${esc(t.icon)}</div>
       <div class="nm">${esc(t.name)} ${p ? `<span class="grp">· ${esc(p.name)}</span>` : ""}</div>
       <div class="acts">${r.state === "running" ? `<button class="iconbtn" data-act="pause" data-id="${r.id}" aria-label="Pausar ${esc(t.name)}">${ICON.pause}</button>` : `<button class="iconbtn" data-act="resume" data-id="${r.id}" aria-label="Retomar ${esc(t.name)}">${ICON.play}</button>`}<button class="iconbtn" data-act="stop" data-id="${r.id}" aria-label="Parar ${esc(t.name)}">${ICON.stop}</button></div>
@@ -850,7 +879,7 @@ function viewStats() {
   const segs = segmentsIn(a, b); const raw = sumByType(a, b); const roll = rollup(raw);
   const tracked = [...raw.values()].reduce((x, y) => x + y, 0);
   const span = Math.max(0, Math.min(b, now()) - a); const untracked = Math.max(0, span - coveredMs(segs));
-  const tops = topLevel().map(t => ({ id: t.id, name: t.name, color: t.color, ms: roll.get(t.id) || 0 })).filter(p => p.ms > 0).sort((x, y) => y.ms - x.ms);
+  const tops = S.types.filter(t => !t.isGroup).map(t => ({ id: t.id, name: t.name, color: t.color, ms: roll.get(t.id) || 0 })).filter(p => p.ms > 0).sort((x, y) => y.ms - x.ms);
   for (const [id, ms] of raw) if (!typeById(id) && ms > 0) tops.push({ id, name: "Atividade removida", color: "#6B7C85", ms });
   const showU = S.settings.showUntracked && untracked > 0;
   const parts = showU ? [...tops, { id: "_u", name: "Sem registro", color: "var(--untracked)", ms: untracked }] : tops;
@@ -868,13 +897,84 @@ function viewStats() {
   ${perDay}`;
 }
 
-function viewLists() {
-  const cards = S.lists.map(l => { const pct = listPct(l); const done = l.items.filter(i => i.done).length;
-    return `<button class="lcard" data-act="openlist" data-id="${l.id}"><span class="ico em">${esc(l.icon || "✅")}</span><span class="nm">${esc(l.name)}</span><span class="pct">${pct}%</span>
-      <span class="meta"><span class="meter ${pct === 100 ? "done" : ""}"><span style="width:${pct}%"></span></span><span class="sub">${done} de ${l.items.length} ${l.items.length === 1 ? "ação" : "ações"}</span></span></button>`; }).join("");
-  return `${exampleBanner()}<section class="section"><div class="rowhead"><h2>Grupos de ações</h2><button class="btn primary" data-act="newlist">${ICON.plus} Novo grupo</button></div>
-  ${cards ? `<div class="section">${cards}</div>` : `<div class="empty">Nenhum grupo.</div>`}
-  </section>`;
+function checksSummary(checks) { return (checks || []).map(g => `<span class="chip ${groupPct(g) === 100 ? "ok" : ""}"><span class="em">${esc(g.icon || "✅")}</span> ${esc(g.name)} ${groupPct(g)}%</span>`).join(" "); }
+function viewJournal() {
+  const jr = S.running.find(r => r.typeId === JOURNAL);
+  const t = typeById(JOURNAL) || GONE;
+  const top = jr ? `<div class="run ${jr.state}" style="--c:${t.color}" data-act="jopen" data-id="${jr.id}"><div class="main"><div class="ico em">${esc(t.icon)}</div>
+      <div class="nm">Registro em andamento</div>
+      <div class="acts">${jr.state === "running" ? `<button class="iconbtn" data-act="pause" data-id="${jr.id}" aria-label="Pausar registro">${ICON.pause}</button>` : `<button class="iconbtn" data-act="resume" data-id="${jr.id}" aria-label="Retomar registro">${ICON.play}</button>`}<button class="iconbtn" data-act="stop" data-id="${jr.id}" aria-label="Encerrar registro">${ICON.stop}</button></div>
+      <div class="clock" data-run="${jr.id}">${fmtClock(runElapsed(jr))}</div>
+      <div><span class="chip ${jr.state === "running" ? "live" : ""}">${jr.state === "running" ? "Rodando" : "Pausado"}</span> <span class="sub">desde ${fmtHM(jr.started)}</span></div>
+      ${jr.comment ? `<div class="cm has" style="grid-column:2 / span 2">${esc(jr.comment)}</div>` : ""}
+      ${(jr.checks || []).length ? `<div class="jchips" style="grid-column:2 / span 2">${checksSummary(jr.checks)}</div>` : ""}</div></div>`
+    : `<button class="jplay" data-act="jstart">${ICON.play}<span>Iniciar registro</span></button>`;
+  const entries = journalEntries().slice(0, 80);
+  let feed = "", lastDay = null;
+  for (const e of entries) {
+    const day = sod(e.start); if (day !== lastDay) { feed += `<div class="jday">${esc(fmtDayLong(e.start))}</div>`; lastDay = day; }
+    feed += `<button class="jentry" data-act="jedit" data-id="${e.id}"><span class="jt">${fmtHM(e.start)} – ${fmtHM(e.end)} · ${fmtDur(e.ms ?? e.end - e.start)}</span>${e.text ? `<span class="jx">${esc(e.text)}</span>` : ""}${(e.checks || []).length ? `<span class="jchips">${checksSummary(e.checks)}</span>` : ""}</button>`;
+  }
+  const cards = S.lists.map(l => `<button class="lcard" data-act="openlist" data-id="${l.id}"><span class="ico em">${esc(l.icon || "✅")}</span><span class="nm">${esc(l.name)}</span><span class="pct sub" style="font-size:13px">${l.items.length} ${l.items.length === 1 ? "hábito" : "hábitos"}</span></button>`).join("");
+  return `${exampleBanner()}
+  <section class="section">${top}</section>
+  <section class="section"><h2>Registros</h2>${feed ? `<div class="jfeed">${feed}</div>` : `<div class="empty">Nenhum registro.</div>`}</section>
+  <section class="section"><div class="rowhead"><h2>Grupos de hábitos</h2><button class="btn" data-act="newlist">${ICON.plus} Novo grupo</button></div>
+  ${cards ? `<div class="section">${cards}</div>` : `<div class="empty">Nenhum grupo.</div>`}</section>`;
+}
+
+/* editor do registro (em andamento ou já salvo): texto + grupos de hábitos com marcação e porcentagem */
+function checksEditorHTML(checks) {
+  return (checks || []).map((g, gi) => `<div class="jgroup"><div class="jgh"><span class="em">${esc(g.icon || "✅")}</span><b>${esc(g.name)}</b><span class="jpct">${groupPct(g)}%</span><button type="button" class="iconbtn sm" data-gdel="${gi}" aria-label="Tirar ${esc(g.name)} do registro">${ICON.x}</button></div>
+    <div class="meter ${groupPct(g) === 100 ? "done" : ""}"><span style="width:${groupPct(g)}%"></span></div>
+    <div class="checks">${g.items.map((it, ii) => `<div class="ck ${it.done ? "on" : ""}" role="checkbox" aria-checked="${it.done}" tabindex="0" data-g="${gi}" data-i="${ii}"><span class="box">${ICON.check}</span><span class="tx">${esc(it.text)}</span><span></span><span></span></div>`).join("")}</div></div>`).join("");
+}
+function pickGroup(onPick) {
+  const el = openLayer("Incluir grupo", S.lists.length ? `<div class="section">${S.lists.map(l => `<button class="lcard" data-pick="${l.id}"><span class="ico em">${esc(l.icon || "✅")}</span><span class="nm">${esc(l.name)}</span><span class="pct sub" style="font-size:13px">${l.items.length} ${l.items.length === 1 ? "hábito" : "hábitos"}</span></button>`).join("")}</div>` : `<div class="empty">Nenhum grupo.</div>`,
+    { left: `<button class="btn ghost" data-act="close">Cancelar</button>`, right: `<button class="btn" id="pg_new">${ICON.plus} Novo</button>` });
+  el.querySelector(".fsbody").onclick = e => { const b = e.target.closest("[data-pick]"); if (!b) return; const l = S.lists.find(x => x.id === b.dataset.pick); closeLayer(el); if (l) onPick(l); };
+  el.querySelector("#pg_new").onclick = () => { closeLayer(el); newList(true); };
+}
+const groupCopy = l => ({ listId: l.id, name: l.name, icon: l.icon, items: l.items.map(i => ({ id: uid(), text: i.text, done: false })) });
+function journalLayer({ title, head, getText, getChecks, setText, setChecks, onSaveClose, extraBottom, mount }) {
+  const el = openLayer(title, `${head}<label for="j_t" class="small" style="font-weight:700">Registro</label><textarea id="j_t" class="note" style="min-height:160px"></textarea><div id="j_groups"></div><button type="button" class="btn" id="j_add">${ICON.plus} Incluir grupo de hábitos</button>${extraBottom || ""}`, { okLabel: "Salvar" });
+  const ta = el.querySelector("#j_t"); ta.value = getText();
+  const draw = () => { el.querySelector("#j_groups").innerHTML = checksEditorHTML(getChecks()); };
+  draw();
+  el.querySelector("#j_groups").onclick = e => {
+    const del = e.target.closest("[data-gdel]"); if (del) { const c = getChecks(); c.splice(+del.dataset.gdel, 1); setChecks(c); draw(); return; }
+    const row = e.target.closest("[data-g]"); if (!row) return; const c = getChecks(); const it = c[+row.dataset.g].items[+row.dataset.i]; it.done = !it.done; setChecks(c); draw();
+  };
+  el.querySelector("#j_groups").onkeydown = e => { if ((e.key === " " || e.key === "Enter") && e.target.matches("[data-g]")) { e.preventDefault(); e.target.click(); } };
+  el.querySelector("#j_add").onclick = () => pickGroup(l => { const c = getChecks(); c.push(groupCopy(l)); setChecks(c); draw(); });
+  el.querySelector("[data-ok]").onclick = () => { setText(ta.value.trim()); closeLayer(el); onSaveClose && onSaveClose(); renderAll(); };
+  if (mount) mount(el, () => setText(ta.value.trim()));
+  return el;
+}
+function startJournal() { const jr = S.running.find(r => r.typeId === JOURNAL); if (jr) { if (jr.state === "paused") resumeRun(jr.id); openJournal(jr.id); return; } ensureJournal(); startType(JOURNAL); const nr = S.running.find(r => r.typeId === JOURNAL); if (nr) openJournal(nr.id); }
+function openJournal(runId) {
+  const r = runById(runId); if (!r) return; r.checks ??= [];
+  journalLayer({ title: "Registro",
+    head: `<div class="regctl"><span class="rbig" data-run="${r.id}">${fmtClock(runElapsed(r))}</span><button class="btn" id="lv_pp"></button><button class="btn danger" id="lv_stop">${ICON.stop} Encerrar registro</button></div>`,
+    getText: () => r.comment || "", getChecks: () => r.checks,
+    setText: v => { if (r.comment !== v) { r.comment = v; markApp(); } }, setChecks: c => { r.checks = c; markApp(); },
+    mount: (el, saveText) => {
+      const pp = el.querySelector("#lv_pp");
+      const label = () => { const on = runById(runId)?.state === "running"; pp.innerHTML = on ? ICON.pause + " Pausar" : ICON.play + " Retomar"; el.querySelector(".rbig").classList.toggle("paused", !on); };
+      label();
+      pp.onclick = () => { saveText(); const x = runById(runId); if (!x) return; if (x.state === "running") pauseRun(runId); else resumeRun(runId); label(); };
+      el.querySelector("#lv_stop").onclick = () => { saveText(); closeLayer(el); stopRun(runId); };
+    } });
+}
+function editEntry(id) {
+  const e = allLogs().find(x => x.id === id && x.kind === "journal"); if (!e) return;
+  const draft = { text: e.text || "", checks: clone(e.checks || []) };
+  journalLayer({ title: "Registro",
+    head: `<div class="ctx" style="--c:var(--accent)"><span class="ico em">📓</span><span><span class="t">${esc(fmtDayLong(e.start))}</span><br><span class="s">${fmtHM(e.start)} – ${fmtHM(e.end)} · ${fmtDur(e.ms ?? e.end - e.start)}</span></span></div>`,
+    getText: () => draft.text, getChecks: () => draft.checks, setText: v => { draft.text = v; }, setChecks: c => { draft.checks = c; },
+    onSaveClose: () => { removeLog(e.id); addLog({ ...e, text: draft.text, checks: draft.checks }); },
+    extraBottom: `<div class="sheetbar"><button class="btn danger" id="j_del">Apagar registro</button></div>`,
+    mount: el => { el.querySelector("#j_del").onclick = ev => armButton(ev.currentTarget, "Toque de novo para apagar", () => { removeLog(e.id); dropLogs(l => l.entry === e.id); closeLayer(el); toast("Registro apagado."); renderAll(); }); } });
 }
 
 function viewTypes() {
@@ -1070,7 +1170,7 @@ function emojiPicker(current, onPick) {
 }
 
 /* ---------- grupos de ações (checklists) ---------- */
-function newList() {
+function newList(fromPicker) {
   const draft = { icon: "✅" };
   openLayer("Novo grupo", `
     <div class="iconpick" style="--c:var(--accent)"><span class="cur em" id="l_cur">${draft.icon}</span><button class="btn" id="l_icon">Escolher ícone</button></div>
@@ -1087,31 +1187,24 @@ function openList(id, focusAdd) {
   const l = S.lists.find(x => x.id === id); if (!l) return;
   const el = openLayer(l.name, `<div id="lv"></div>`, { left: `<button class="btn ghost" data-act="close">Fechar</button>` });
   const draw = (keepFocus) => {
-    const pct = listPct(l); const done = l.items.filter(i => i.done).length;
     $(".fsbar h3", el).textContent = l.name;
     $("#lv", el).innerHTML = `
       <div style="display:flex;gap:12px;align-items:center"><button class="iconpick" id="lv_icon" style="--c:var(--accent);background:none;border:0;padding:0" aria-label="Trocar ícone"><span class="cur em">${esc(l.icon || "✅")}</span></button>
         <input class="titlein" id="lv_name" value="${esc(l.name)}" maxlength="50" aria-label="Nome do grupo"></div>
-      <div class="bigpct"><b>${pct}%</b><span class="sub">${done} de ${l.items.length} ${l.items.length === 1 ? "ação feita" : "ações feitas"}</span></div>
-      <div class="meter ${pct === 100 && l.items.length ? "done" : ""}"><span style="width:${pct}%"></span></div>
-      ${l.items.length ? `<div class="checks" id="lv_items">${l.items.map(i => `<div class="ck ${i.done ? "on" : ""}" data-rid="${i.id}" role="checkbox" aria-checked="${i.done}" tabindex="0"><span class="box">${ICON.check}</span><span class="tx">${esc(i.text)}</span><button class="iconbtn sm" data-del="${i.id}" aria-label="Excluir ${esc(i.text)}">${ICON.x}</button><button class="grip" aria-label="Arrastar para reordenar">${ICON.grip}</button></div>`).join("")}</div>` : `<div class="empty">Nenhuma ação.</div>`}
-      <form class="addrow" id="lv_add"><input id="lv_new" type="text" maxlength="80" placeholder="Nova ação" enterkeyhint="done"><button class="btn primary" type="submit">Adicionar</button></form>
-      <div class="sheetbar"><button class="btn" id="lv_reset" ${done ? "" : "disabled"}>Desmarcar todas</button><button class="btn danger" id="lv_delete">Excluir grupo</button></div>`;
-    $("#lv_add", el).onsubmit = ev => { ev.preventDefault(); const v = $("#lv_new", el).value.trim(); if (!v) return; l.items.push({ id: uid(), text: v, done: false }); markApp(); draw(true); };
+      ${l.items.length ? `<div class="checks" id="lv_items">${l.items.map(i => `<div class="ck tpl" data-rid="${i.id}"><span class="tx">${esc(i.text)}</span><button class="iconbtn sm" data-del="${i.id}" aria-label="Excluir ${esc(i.text)}">${ICON.x}</button><button class="grip" aria-label="Arrastar para reordenar">${ICON.grip}</button></div>`).join("")}</div>` : `<div class="empty">Nenhum hábito.</div>`}
+      <form class="addrow" id="lv_add"><input id="lv_new" type="text" maxlength="80" placeholder="Novo hábito" enterkeyhint="done"><button class="btn primary" type="submit">Adicionar</button></form>
+      <div class="sheetbar"><span></span><button class="btn danger" id="lv_delete">Excluir grupo</button></div>`;
+    $("#lv_add", el).onsubmit = ev => { ev.preventDefault(); const v = $("#lv_new", el).value.trim(); if (!v) return; l.items.push({ id: uid(), text: v, done: false }); markApp(); draw(true); renderAll(); };
     if (keepFocus) { const i = $("#lv_new", el); i.focus(); }
     $("#lv_name", el).onchange = ev => { const v = ev.target.value.trim(); if (v) { l.name = v; markApp(); $(".fsbar h3", el).textContent = v; renderAll(); } else ev.target.value = l.name; };
     $("#lv_icon", el).onclick = () => emojiPicker(l.icon, e => { l.icon = e; markApp(); draw(); renderAll(); });
-    $("#lv_reset", el).onclick = () => { l.items.forEach(i => i.done = false); markApp(); draw(); renderAll(); };
     $("#lv_delete", el).onclick = ev => armButton(ev.currentTarget, "Toque de novo para excluir o grupo", () => { S.lists = S.lists.filter(x => x.id !== l.id); markApp(); closeLayer(el); toast("Grupo excluído."); renderAll(); });
     const list = $("#lv_items", el);
     if (list) {
       list.onclick = ev => {
         if (list.dataset.suppress) { delete list.dataset.suppress; return; }
-        const del = ev.target.closest("[data-del]"); if (del) { l.items = l.items.filter(i => i.id !== del.dataset.del); markApp(); draw(); renderAll(); return; }
-        if (ev.target.closest(".grip")) return;
-        const row = ev.target.closest("[data-rid]"); if (!row) return; const it = l.items.find(i => i.id === row.dataset.rid); it.done = !it.done; markApp(); draw(); renderAll();
+        const del = ev.target.closest("[data-del]"); if (del) { l.items = l.items.filter(i => i.id !== del.dataset.del); markApp(); draw(); renderAll(); }
       };
-      list.onkeydown = ev => { if ((ev.key === " " || ev.key === "Enter") && ev.target.matches("[data-rid]")) { ev.preventDefault(); ev.target.click(); } };
       enableReorder(list, ids => { const map = new Map(l.items.map(i => [i.id, i])); l.items = ids.map(x => map.get(x)).filter(Boolean); markApp(); draw(); renderAll(); });
     }
   };
@@ -1150,8 +1243,9 @@ function csvText() {
   const q = v => /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
   const f = ms => { const d = new Date(ms); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + " " + fmtHM(ms); };
   const lines = ["Atividade,Linha,Início,Fim,Duração (h:mm),Duração (h),Comentário"];
-  for (const l of allLogs().sort((a, b) => a.start - b.start)) { const t = typeById(l.typeId); const g = t && t.parent && typeById(t.parent); const m = Math.round((l.kind === "reg" ? (l.ms ?? l.end - l.start) : l.end - l.start) / MIN);
-    lines.push([q(t ? t.name : "Atividade removida"), l.kind === "reg" ? "Registro" : "Intervalo", f(l.start), f(l.end), Math.floor(m / 60) + ":" + pad(m % 60), (m / 60).toFixed(2), q(l.comment || "")].join(",")); }
+  for (const l of allLogs().sort((a, b) => a.start - b.start)) { const t = typeById(l.typeId); const g = t && t.parent && typeById(t.parent); const m = Math.round((l.kind ? (l.ms ?? l.end - l.start) : l.end - l.start) / MIN);
+    const note = l.kind === "journal" ? [l.text || "", ...(l.checks || []).map(g => g.name + " " + groupPct(g) + "%")].filter(Boolean).join(" · ") : (l.comment || "");
+    lines.push([q(t ? t.name : l.kind === "journal" ? "Diário" : "Atividade removida"), l.kind === "journal" ? "Registro do diário" : l.kind === "reg" ? "Registro" : "Intervalo", f(l.start), f(l.end), Math.floor(m / 60) + ":" + pad(m % 60), (m / 60).toFixed(2), q(note)].join(",")); }
   return lines.join("\n");
 }
 async function offerFile(filename, text) {
@@ -1236,6 +1330,9 @@ document.addEventListener("click", e => {
     case "editlog": editLog(id); break;
     case "newlog": editLog(null); break;
     case "newlist": newList(); break;
+    case "jstart": startJournal(); break;
+    case "jopen": openJournal(id); break;
+    case "jedit": editEntry(id); break;
     case "openlist": openList(id); break;
     case "newtype": editType(null, false); break;
     case "edittype": editType(id); break;
@@ -1261,7 +1358,7 @@ setInterval(() => {
 setInterval(() => { if (Store.ready) renderAll(); }, 60000);
 boot();
 /* atualização automática: ao abrir, ao voltar para a tela e a cada 5 min, confere se há versão nova publicada e recarrega */
-const BUILD = "20261023063326";
+const BUILD = "20261023064241";
 let swReg = null;
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(() => {}));
 async function checkUpdate() {
