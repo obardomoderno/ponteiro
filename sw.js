@@ -1,6 +1,6 @@
 // Service worker do Ponteiro: guarda o app no aparelho para abrir sem internet.
 // Funciona em qualquer subpasta (ex.: usuario.github.io/ponteiro/). A sincronização com o GitHub nunca passa pelo cache.
-const VERSION = "ponteiro-v14";
+const VERSION = "ponteiro-v15";
 const HOME = new URL("./", self.location).href;
 const SHELL = ["./", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
