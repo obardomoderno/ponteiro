@@ -1,6 +1,6 @@
 // Service worker do Ponteiro: guarda o app no aparelho para abrir sem internet.
 // Funciona em qualquer subpasta (ex.: usuario.github.io/ponteiro/). A sincronização com o GitHub nunca passa pelo cache.
-const VERSION = "ponteiro-v15";
+const VERSION = "ponteiro-v16";
 const HOME = new URL("./", self.location).href;
 const SHELL = ["./", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
@@ -22,6 +22,7 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(req.url);
 
   if (req.mode === "navigate") {
+    if (url.pathname !== new URL(HOME).pathname) return;   // outras páginas do site (ex.: /prumo/) têm o próprio service worker
     e.respondWith(
       fetch(req.url, { cache: "no-store", credentials: "same-origin" })   // sempre a versão publicada, sem o cache do navegador
         .then((res) => { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(HOME, copy)); return res; })
