@@ -324,7 +324,7 @@ function periodLabel(kind, [s, e]) {
 
 /* ---------- estado ---------- */
 const COLORS = ["#E4572E","#F3A712","#9BBF5A","#2E933C","#0B9A93","#3E92CC","#2F5BEA","#6C4AB6","#C2378D","#D9455F","#8D6A4F","#6B7C85"];
-const defaultSettings = () => ({ startMode: "stop", firstWeekday: 1, minSec: 0, showUntracked: true });
+const defaultSettings = () => ({ startMode: "pause", firstWeekday: 1, minSec: 0, showUntracked: true, modeV2: true });
 let S = { types: [], lists: [], settings: defaultSettings(), running: [], L: {}, del: {}, example: false };
 const UI = { tab: "now", openGroup: null, histDay: 0, statKind: "week", statOff: 0, statOpen: {}, showArchived: false };
 
@@ -420,8 +420,9 @@ addEventListener("offline", updateSync);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") flush(); else saveCache(); });
 addEventListener("pagehide", saveCache);
 function loadApp(d) {
-  S.types = d.types || []; S.lists = d.lists || []; S.running = (d.running || []).map(r => ({ regs: [], ...r }));
+  S.types = d.types || []; S.lists = d.lists || []; S.running = (d.running || []).map(r => ({ ...r, regs: [] }));
   S.settings = { ...defaultSettings(), ...(d.settings || {}) }; S.example = !!d.example;
+  if (d.settings && !d.settings.modeV2) { S.settings.startMode = "pause"; S.settings.modeV2 = true; if (Store.mode !== "boot") markApp(); }
 }
 function applySnap(snap) {
   for (const d of snap.docs) {
@@ -648,7 +649,6 @@ function seedExample() {
       const s = t + gap, e = s + len;
       if (dd === 0 && e > now() - 50 * MIN) break;
       logInterval(ty.id, s, e, ty === meet && rnd() > .5 ? "Planejamento da semana" : "");
-      if (ty === code && rnd() > .55) addLog({ id: uid(), kind: "reg", typeId: code.id, start: s + 20 * MIN, end: s + 34 * MIN, ms: 14 * MIN, comment: "Revisão de código com a equipe" });
       t = e;
     }
     const sleepStart = day + 23 * HOUR + Math.round(rnd() * 6) * 10 * MIN;
@@ -657,9 +657,7 @@ function seedExample() {
   const lastToday = timeLogs().filter(l => l.start >= today).sort((a, b) => b.end - a.end)[0];
   const startAt = Math.max(lastToday ? lastToday.end : now() - 47 * MIN, now() - 3 * HOUR);
   if (now() - startAt > MIN) {
-    const regAt = Math.max(startAt, now() - 12 * MIN);
-    S.running.push({ id: uid(), typeId: code.id, state: "running", since: startAt, acc: 0, started: startAt, comment: "Tela de configurações do app",
-      regs: [{ id: uid(), state: "running", since: regAt, acc: 0, started: regAt, comment: "Ligação com cliente" }] });
+    S.running.push({ id: uid(), typeId: code.id, state: "running", since: startAt, acc: 0, started: startAt, comment: "Tela de configurações do app", regs: [] });
   }
   const L = (name, icon, items) => ({ id: uid(), name, icon, items: items.map(([text, done]) => ({ id: uid(), text, done })) });
   S.lists = [
@@ -680,17 +678,28 @@ function clearExample() {
 /* ---------- cronômetros: atividades e registros ---------- */
 const runElapsed = r => r.acc + (r.state === "running" ? now() - r.since : 0);
 const runById = id => S.running.find(x => x.id === id);
+/* ponto de partida: se outra atividade está rodando, agora (ela é pausada neste instante);
+   se nada está rodando, o fim do último intervalo registrado, para não sobrar buraco entre uma atividade e a próxima */
+function startPoint(exceptId) {
+  const t = now();
+  if (S.running.some(r => r.id !== exceptId && r.state === "running")) return t;
+  let last = 0; for (const l of timeLogs()) if (l.end <= t && l.end > last) last = l.end;
+  return last || t;
+}
+function haltOthers(exceptId) {
+  const mode = S.settings.startMode;
+  for (const o of [...S.running]) { if (o.id === exceptId || o.state !== "running") continue; if (mode === "stop") stopRun(o.id, true); else if (mode === "pause") pauseRun(o.id, true); }
+}
 function startType(typeId) {
   const ex = S.running.find(r => r.typeId === typeId);
   if (ex) { if (ex.state === "paused") resumeRun(ex.id); else toast(typeById(typeId).name + " já está rodando."); return; }
-  const mode = S.settings.startMode;
-  for (const r of [...S.running]) { if (r.state !== "running") continue; if (mode === "stop") stopRun(r.id, true); else if (mode === "pause") pauseRun(r.id, true); }
-  const t = now();
-  S.running.unshift({ id: uid(), typeId, state: "running", since: t, acc: 0, started: t, comment: "", regs: [] });
+  const at = startPoint(null);
+  haltOthers(null);
+  S.running.unshift({ id: uid(), typeId, state: "running", since: at, acc: 0, started: at, comment: "", regs: [] });
   markApp(); renderAll();
 }
 function pauseRun(id, quiet) { const r = runById(id); if (!r || r.state !== "running") return; const t = now(); logInterval(r.typeId, r.since, t, r.comment); r.acc += t - r.since; r.state = "paused"; markApp(); if (!quiet) renderAll(); }
-function resumeRun(id) { const r = runById(id); if (!r) return; const mode = S.settings.startMode; for (const o of S.running) { if (o.id !== id && o.state === "running") { if (mode === "stop") stopRun(o.id, true); else if (mode === "pause") pauseRun(o.id, true); } } r.state = "running"; r.since = now(); markApp(); renderAll(); }
+function resumeRun(id) { const r = runById(id); if (!r || r.state === "running") return; const at = startPoint(id); haltOthers(id); r.state = "running"; r.since = at; markApp(); renderAll(); }
 function stopRun(id, quiet) {
   const r = runById(id); if (!r) return;
   const total = runElapsed(r);
@@ -761,7 +770,7 @@ const exampleBanner = () => S.example ? `<div class="banner"><span>Você está v
 function viewNow() {
   const [a, b] = periodRange("day", 0); const today = rollup(sumByType(a, b));
   const runs = S.running.map(r => { const t = typeById(r.typeId) || GONE; const p = t.parent && typeById(t.parent);
-    const regs = (r.regs || []).map((g, i) => `<div class="reg ${g.state}" style="--c:${t.color}" data-act="regnote" data-run="${r.id}" data-id="${g.id}">
+    const _unusedRegs = [].map((g, i) => `<div class="reg ${g.state}" style="--c:${t.color}" data-act="regnote" data-run="${r.id}" data-id="${g.id}">
         <span class="tag"></span><span><span class="rc" data-reg="${r.id}:${g.id}">${fmtShortClock(runElapsed(g))}</span><br><span class="rt ${g.comment ? "has" : ""}">${g.comment ? esc(g.comment) : "Registro " + (i + 1)}</span></span>
         ${g.state === "running" ? `<button class="iconbtn sm" data-act="regpause" data-run="${r.id}" data-id="${g.id}" aria-label="Pausar registro">${ICON.pause}</button>` : `<button class="iconbtn sm" data-act="regresume" data-run="${r.id}" data-id="${g.id}" aria-label="Retomar registro">${ICON.play}</button>`}
         <button class="iconbtn sm" data-act="regstop" data-run="${r.id}" data-id="${g.id}" aria-label="Encerrar registro">${ICON.stop}</button></div>`).join("");
@@ -772,8 +781,7 @@ function viewNow() {
       <div class="clock" data-run="${r.id}">${fmtClock(runElapsed(r))}</div>
       <div><span class="chip ${r.state === "running" ? "live" : ""}">${r.state === "running" ? "Rodando" : "Pausado"}</span> <span class="sub">desde ${fmtHM(r.started)}</span></div>
       ${r.comment ? `<div class="cm has" style="grid-column:2 / span 2">${esc(r.comment)}</div>` : ""}</div>
-      ${regs ? `<div class="regs">${regs}</div>` : ""}
-      <div class="regbar"><button class="btn" data-act="regstart" data-id="${r.id}">${ICON.lap} Registro</button></div></div>`; }).join("");
+      </div>`; }).join("");
   const tile = t => { const on = S.running.some(r => descendants(t.id).includes(r.typeId) && r.state === "running"); const kids = t.isGroup ? childrenOf(t.id).length : 0;
     return `<button class="tile ${t.isGroup ? "group" : ""} ${on ? "on" : ""}" style="--c:${t.color}" data-act="${t.isGroup ? "opengroup" : "start"}" data-id="${t.id}" ${t.isGroup ? `aria-expanded="${UI.openGroup === t.id}"` : ""}>${kids ? `<span class="badge">${kids}</span>` : ""}<span class="ic em">${esc(t.icon)}</span><span class="t">${esc(t.name)}</span><span class="d">${fmtDur(today.get(t.id) || 0)}</span></button>`; };
   let grid = "";
@@ -789,7 +797,7 @@ function viewNow() {
 function viewLog() {
   const a = addDays(sod(now()), UI.histDay), b = addDays(a, 1);
   const segs = segmentsIn(a, b);
-  const regs = allLogs().filter(l => l.kind === "reg" && l.end > a && l.start < b);
+  const regs = [];
   const span = Math.max(0, Math.min(b, now()) - a); const cov = coveredMs(segs);
   const ordered = [...segs].sort((x, y) => x.s - y.s); let lastEnd = -1;
   const blocks = ordered.map(g => { const ov = g.s < lastEnd; lastEnd = Math.max(lastEnd, g.e); return `<i class="${ov ? "ov" : ""}" style="--c:${colorOf(g.typeId)};left:${((g.s - a) / DAY * 100).toFixed(3)}%;width:${((g.e - g.s) / DAY * 100).toFixed(3)}%" title="${esc(typeById(g.typeId)?.name || "")} ${fmtHM(g.s)}–${fmtHM(g.e)}"></i>`; }).join("");
@@ -798,7 +806,7 @@ function viewLog() {
   const row = g => { const t = typeById(g.typeId) || GONE; const p = t.parent && typeById(t.parent); const full = g.log || g.live; const crossed = g.log && (g.log.start < a || g.log.end > b);
     let out = `<button class="item" style="--c:${t.color}" data-act="${g.log ? "editlog" : "rnote"}" data-id="${g.log ? g.log.id : g.live.id}"><span class="dot em">${esc(t.icon)}</span><span class="nm">${esc(t.name)}${p ? ` <span class="sub">· ${esc(p.name)}</span>` : ""}</span><span class="du">${fmtDur(g.e - g.s)}</span><span class="tm">${fmtHM(g.s)} – ${g.live ? "agora" : fmtHM(g.e)}${crossed ? " · parte do intervalo" : ""}${g.live ? " · rodando" : ""}</span>${full.comment ? `<span class="cm">${esc(full.comment)}</span>` : ""}</button>`;
     for (const rg of regs) if (!used.has(rg.id) && rg.typeId === g.typeId && rg.start >= g.s - MIN && rg.start <= g.e) { used.add(rg.id); out += regRow(rg); }
-    if (g.live) for (const rg of g.live.regs || []) out += `<button class="item regrow" style="--c:${t.color}" data-act="regnote" data-run="${g.live.id}" data-id="${rg.id}"><span class="dot">⏱</span><span class="nm">${rg.comment ? esc(rg.comment) : "Registro em andamento"}</span><span class="du">${fmtDur(runElapsed(rg))}</span><span class="tm">desde ${fmtHM(rg.started)} · ${rg.state === "running" ? "rodando" : "pausado"}</span></button>`;
+    if (g.live) for (const rg of []) out += `<button class="item regrow" style="--c:${t.color}" data-act="regnote" data-run="${g.live.id}" data-id="${rg.id}"><span class="dot">⏱</span><span class="nm">${rg.comment ? esc(rg.comment) : "Registro em andamento"}</span><span class="du">${fmtDur(runElapsed(rg))}</span><span class="tm">desde ${fmtHM(rg.started)} · ${rg.state === "running" ? "rodando" : "pausado"}</span></button>`;
     return out; };
   const regRow = rg => { const t = typeById(rg.typeId) || GONE; return `<button class="item regrow" style="--c:${t.color}" data-act="editreg" data-id="${rg.id}"><span class="dot">⏱</span><span class="nm">${rg.comment ? esc(rg.comment) : "Registro"}</span><span class="du">${fmtDur(rg.ms ?? rg.end - rg.start)}</span><span class="tm">${fmtHM(rg.start)} – ${fmtHM(rg.end)} · registro em ${esc(t.name)}</span></button>`; };
   let rows = [...segs].sort((x, y) => y.s - x.s).map(row).join("");
@@ -1246,7 +1254,7 @@ setInterval(() => {
 setInterval(() => { if (Store.ready) renderAll(); }, 60000);
 boot();
 /* atualização automática: ao abrir, ao voltar para a tela e a cada 5 min, confere se há versão nova publicada e recarrega */
-const BUILD = "20261023061922";
+const BUILD = "20261023062700";
 let swReg = null;
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(() => {}));
 async function checkUpdate() {
