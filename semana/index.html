@@ -93,12 +93,12 @@ header{position:sticky;top:0;z-index:10;background:var(--bg);padding-top:max(10p
 .gap{font-size:12px;color:var(--bad);padding:0 6px;font-weight:600}
 
 .add{display:grid;grid-template-columns:1fr 88px 64px 44px;gap:6px;margin-top:10px;background:var(--surface);border-radius:var(--r);padding:6px;box-shadow:var(--shadow)}
-.add input{border:0;background:var(--sunk);border-radius:10px;padding:10px 11px;min-width:0;outline:none}
+.add input,.add .tpick{border:0;background:var(--sunk);border-radius:10px;padding:10px 11px;min-width:0;outline:none}
 .add input:focus{background:color-mix(in srgb,var(--accent-soft) 70%,var(--sunk))}
 .add input::placeholder{color:var(--faint)}
 .add input.err{box-shadow:inset 0 0 0 1.5px var(--bad)}
-.add button{border:0;border-radius:10px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;padding:0}
-.add button svg{width:20px;height:20px;stroke-width:2.6}
+.add button[aria-label="Adicionar"]{border:0;border-radius:10px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;padding:0}
+.add button[aria-label="Adicionar"] svg{width:20px;height:20px;stroke-width:2.6}
 @media (max-width:380px){.add{grid-template-columns:1fr 80px 58px 40px}.add input{padding:10px 8px}}
 
 /* folhas */
@@ -130,7 +130,27 @@ textarea.fld{resize:vertical;min-height:64px}
 .menu .danger{color:var(--bad)}
 .menu .danger.armed{background:var(--bad);color:#fff}
 .tw{display:flex;align-items:center;gap:8px}
-.tw .fld{width:120px;font-size:20px;font-weight:700;text-align:center}
+.tbig{border:0;background:var(--sunk);border-radius:12px;width:120px;padding:10px 0;font-size:22px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums}
+.tbig.empty{color:var(--faint);font-weight:500}
+.add .tpick{background:var(--sunk);color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.add .tpick.empty{color:var(--faint);font-weight:400}
+/* seletor de horário em rodas (estilo iPhone) */
+.pkv{position:fixed;inset:0;z-index:50;background:rgba(10,9,8,.32);display:flex;align-items:flex-end;justify-content:center;animation:fade .15s ease}
+.pk{width:100%;max-width:420px;background:var(--surface);border-radius:20px 20px 0 0;padding:4px 8px calc(14px + env(safe-area-inset-bottom,0px));animation:up .22s cubic-bezier(.2,.8,.2,1);user-select:none;-webkit-user-select:none}
+@media (min-width:700px){.pkv{align-items:center}.pk{border-radius:20px}}
+.pkbar{display:flex;align-items:center;justify-content:space-between;height:50px;padding:0 6px}
+.pkbar b{font-size:16px;font-weight:700}
+.pkbar button{border:0;background:none;color:var(--accent);font-size:17px;font-weight:500;padding:8px 8px}
+.pkbar button.ok{font-weight:700}
+.pkw{position:relative;display:flex;justify-content:center;align-items:center;height:220px;perspective:600px}
+.pkband{position:absolute;left:14px;right:14px;top:90px;height:40px;background:var(--sunk);border-radius:10px}
+.wcol{position:relative;width:84px;height:220px;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;overscroll-behavior:contain;outline:none;
+  -webkit-mask-image:linear-gradient(transparent,#000 32%,#000 68%,transparent);mask-image:linear-gradient(transparent,#000 32%,#000 68%,transparent)}
+.wcol::-webkit-scrollbar{display:none}
+.wcol .padr{height:88px}
+.wi{height:44px;display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:500;scroll-snap-align:center;font-variant-numeric:tabular-nums;transform-origin:center;backface-visibility:hidden;cursor:pointer}
+.pkc{position:relative;font-size:23px;font-weight:600;width:14px;text-align:center;top:-1px}
+.pkclr{display:block;margin:6px auto 0;border:0;background:none;color:var(--bad);font-size:15px;font-weight:600;padding:8px 14px}
 .sum{display:flex;flex-direction:column;gap:12px}
 .sum .r1{display:flex;justify-content:space-between;font-weight:600;gap:12px}
 .sum .r1 span:last-child{color:var(--muted);font-weight:500}
@@ -167,12 +187,13 @@ textarea.fld{resize:vertical;min-height:64px}
     <form class="add" id="add" autocomplete="off">
       <input name="n" placeholder="Nova atividade" enterkeyhint="done" aria-label="Atividade">
       <input name="d" placeholder="Duração" enterkeyhint="done" aria-label="Duração" autocapitalize="off">
-      <input name="t" placeholder="Hora" inputmode="numeric" enterkeyhint="done" aria-label="Horário">
+      <button type="button" class="tpick empty" id="add_t" aria-label="Horário">Hora</button>
       <button aria-label="Adicionar"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
     </form>
   </main>
 </div>
 <div id="layer"></div>
+<div id="pkRoot"></div>
 <div id="toastRoot"></div>
 <script>
 "use strict";
@@ -346,22 +367,72 @@ function render() {
 const form = $("#add");
 form.addEventListener("submit", e => {
   e.preventDefault();
-  const fN = form.n, fD = form.d, fT = form.t;
+  const fN = form.n, fD = form.d;
   const p = parseLine(fN.value);
   let dur = fD.value.trim() ? parseDur(fD.value) : p.dur ?? null;
-  let at = fT.value.trim() ? parseTime(fT.value) : p.at ?? null;
-  [fD, fT].forEach(f => f.classList.remove("err"));
+  let at = addAt ?? p.at ?? null;
+  fD.classList.remove("err");
   if (dur === undefined) { bad(fD); return; }
-  if (at === undefined) { bad(fT); return; }
   if (!p.name) { bad(fN); fN.focus(); return; }
   const list = items(UI.day).slice();
   list.push({ id: uid(), name: p.name, dur, at, done: false, note: "" });
   setDay(UI.day, list); render();
-  fN.value = fD.value = fT.value = ""; fN.focus();
+  fN.value = fD.value = ""; setAddAt(null); fN.focus();
   const last = $("#list").lastElementChild; if (last) last.scrollIntoView({ block: "nearest", behavior: "smooth" });
 });
 function bad(f) { f.classList.add("err", "shake"); setTimeout(() => f.classList.remove("shake"), 520); }
-["d", "t"].forEach(n => form[n].addEventListener("input", () => form[n].classList.remove("err")));
+form.d.addEventListener("input", () => form.d.classList.remove("err"));
+let addAt = null;
+function setAddAt(t) { addAt = t; const b = $("#add_t"); b.textContent = t || "Hora"; b.classList.toggle("empty", !t); }
+$("#add_t").addEventListener("click", () => {
+  const R = compute(items(UI.day)), ends = R.map(r => r.e).filter(v => v != null);
+  const n = new Date(), fallback = ends.length ? fmtTp(Math.max(...ends)) : pad(n.getHours()) + ":" + pad(Math.round(n.getMinutes() / 5) * 5 % 60);
+  pickTime(addAt, fallback, t => setAddAt(t));
+});
+
+/* ---------- seletor de horário em rodas ---------- */
+const ROW = 44, REP = 7;
+function wheel(n, value, label) {
+  const col = document.createElement("div"); col.className = "wcol"; col.tabIndex = 0; col.setAttribute("aria-label", label);
+  col.innerHTML = `<div class="padr"></div>${Array.from({ length: n * REP }, (_, i) => `<div class="wi" data-i="${i}">${pad(i % n)}</div>`).join("")}<div class="padr"></div>`;
+  const els = col.querySelectorAll(".wi");
+  const idx = () => Math.round(col.scrollTop / ROW);
+  const paint = () => {
+    const c = col.scrollTop / ROW, a = Math.max(0, Math.floor(c) - 4), b = Math.min(els.length - 1, Math.ceil(c) + 4);
+    for (let i = a; i <= b; i++) { const d = i - c, ad = Math.min(Math.abs(d), 3); els[i].style.transform = `rotateX(${(-d * 20).toFixed(1)}deg)`; els[i].style.opacity = (1 - ad * 0.28).toFixed(2); }
+  };
+  let raf = 0, idle = 0;
+  const recenter = () => { const i = idx(), v = ((i % n) + n) % n; if (i < n * 2 || i >= n * (REP - 2)) { col.scrollTop = (n * 3 + v) * ROW; paint(); } };
+  col.addEventListener("scroll", () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; paint(); }); clearTimeout(idle); idle = setTimeout(recenter, 160); }, { passive: true });
+  col.addEventListener("click", e => { const it = e.target.closest(".wi"); if (it) col.scrollTo({ top: +it.dataset.i * ROW, behavior: "smooth" }); });
+  col.addEventListener("keydown", e => { if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); col.scrollTo({ top: (idx() + (e.key === "ArrowUp" ? -1 : 1)) * ROW, behavior: "smooth" }); } });
+  col._init = () => { col.scrollTop = (n * 3 + value) * ROW; paint(); };
+  col._val = () => ((idx() % n) + n) % n;
+  return col;
+}
+function pickTime(current, fallback, onPick) {
+  const start = current || fallback || "12:00", [h0, m0] = start.split(":").map(Number);
+  const v = document.createElement("div"); v.className = "pkv";
+  v.innerHTML = `<div class="pk" role="dialog" aria-modal="true" aria-label="Horário">
+    <div class="pkbar"><button data-p="cancel">Cancelar</button><b>Horário</b><button class="ok" data-p="ok">OK</button></div>
+    <div class="pkw"><div class="pkband"></div></div>
+    ${current ? `<button class="pkclr" data-p="clear">Sem horário fixo</button>` : ""}</div>`;
+  const hw = wheel(24, h0, "Horas"), mw = wheel(60, m0, "Minutos"), colon = document.createElement("div");
+  colon.className = "pkc"; colon.textContent = ":";
+  $(".pkw", v).append(hw, colon, mw);
+  const close = () => { v.remove(); if (!$("#layer").firstElementChild) document.body.classList.remove("locked"); };
+  v._ok = () => { const t = pad(hw._val()) + ":" + pad(mw._val()); close(); onPick(t); };
+  v.addEventListener("click", e => {
+    if (e.target === v) { close(); return; }
+    const b = e.target.closest("[data-p]"); if (!b) return;
+    if (b.dataset.p === "ok") v._ok();
+    else if (b.dataset.p === "clear") { close(); onPick(null); }
+    else close();
+  });
+  $("#pkRoot").appendChild(v); document.body.classList.add("locked");
+  hw._init(); mw._init();
+}
+const overlay = () => $("#layer").firstElementChild || $("#pkRoot").firstElementChild;
 
 /* ---------- folhas ---------- */
 let sheetRefresh = null;
@@ -390,7 +461,7 @@ function openEdit(id) {
     <div class="row" id="e_ch">${PRESETS.map(p => `<button class="chip sm" data-d="${p ?? ""}">${p == null ? "Livre" : fmtD(p).replace(" min", "m")}</button>`).join("")}</div>
     <div class="row" style="margin-top:8px"><input class="fld" id="e_d" placeholder="ex.: 1h15, 40" autocapitalize="off" enterkeyhint="done" style="max-width:180px"><span class="hint" id="e_dh"></span></div>
     <div class="lab">Horário</div>
-    <div class="tw"><input class="fld" id="e_t" inputmode="numeric" enterkeyhint="done" aria-label="Horário fixo"><span id="e_tb"></span></div>
+    <div class="tw"><button class="tbig" id="e_t" aria-label="Horário fixo"></button><span id="e_tb"></span></div>
     <div class="hint" id="e_th" style="margin-top:8px"></div>
     <div class="lab">Mover para</div>
     <div class="row" id="e_mv"></div>
@@ -401,7 +472,6 @@ function openEdit(id) {
   const upd = fn => { const x = cur(); if (!x) return; fn(x); commit(UI.day); };
   const fD = $("#e_d", el), fT = $("#e_t", el);
   fD.value = it.dur != null && !PRESETS.includes(it.dur) ? fmtD(it.dur) : "";
-  fT.value = it.at || "";
   sheetRefresh = () => {
     const x = cur(); if (!x) { closeSheet(true); return; }
     const list = items(UI.day), r = compute(list)[list.indexOf(x)];
@@ -410,8 +480,7 @@ function openEdit(id) {
     const range = r.s != null ? fmtTp(r.s) + (r.e != null ? "–" + fmtTp(r.e) : "") : "";
     $("#e_th", el).textContent = x.at ? (range ? "Fixo · " + range : "") : range ? "Calculado · " + range : "";
     $("#e_tb", el).innerHTML = x.at ? `<button class="btn" data-x="clr">Soltar</button>` : r.s != null ? `<button class="btn" data-x="pin">Fixar ${fmtTp(r.s)}</button>` : "";
-    fT.placeholder = "—";
-    if (document.activeElement !== fT) fT.value = x.at || "";
+    fT.textContent = x.at || "—"; fT.classList.toggle("empty", !x.at);
     const wk = weekOf(UI.day);
     $("#e_mv", el).innerHTML = wk.map(d => `<button class="chip sm" data-mv="${d}"${d === UI.day ? ' aria-pressed="true"' : ""}>${WDL[fromKey(d).getDay()]}</button>`).join("");
   };
@@ -420,17 +489,12 @@ function openEdit(id) {
   $("#e_n", el).addEventListener("keydown", e => { if (e.key === "Enter") e.target.blur(); });
   $("#e_ch", el).addEventListener("click", e => { const c = e.target.closest(".chip"); if (!c) return; fD.value = ""; fD.classList.remove("err"); upd(x => { x.dur = c.dataset.d === "" ? null : +c.dataset.d; }); });
   fD.addEventListener("input", () => { const d = parseDur(fD.value); fD.classList.toggle("err", d === undefined && !!fD.value.trim()); if (d !== undefined && fD.value.trim()) upd(x => { x.dur = d; }); });
-  fT.addEventListener("input", () => {
-    const raw = fT.value.trim(); fT.classList.remove("err");
-    if (!raw) { upd(x => { x.at = null; }); return; }
-    if (/^\d{4}$|^\d{1,2}[:h.]\d{2}$/.test(raw)) { const t = parseTime(raw); if (t) upd(x => { x.at = t; }); else fT.classList.add("err"); }
+  fT.addEventListener("click", () => {
+    const x = cur(), list = items(UI.day), r = compute(list)[list.indexOf(x)];
+    const n = new Date(), fb = r.s != null ? fmtTp(r.s) : pad(n.getHours()) + ":" + pad(Math.round(n.getMinutes() / 5) * 5 % 60);
+    pickTime(x.at, fb, t => upd(y => { y.at = t; }));
   });
-  fT.addEventListener("blur", () => {
-    const t = parseTime(fT.value);
-    if (t !== undefined) { const x = cur(); if (x && x.at !== t) upd(y => { y.at = t; }); fT.value = t || ""; }
-    else { bad(fT); const x = cur(); fT.value = (x && x.at) || ""; }
-  });
-  [fD, fT].forEach(f => f.addEventListener("keydown", e => { if (e.key === "Enter") f.blur(); }));
+  fD.addEventListener("keydown", e => { if (e.key === "Enter") fD.blur(); });
   $("#e_tb", el).addEventListener("click", e => {
     const b = e.target.closest("[data-x]"); if (!b) return;
     if (b.dataset.x === "clr") upd(x => { x.at = null; });
@@ -635,6 +699,8 @@ document.addEventListener("click", e => {
   else if (act === "done" && li) { const it = items(UI.day).find(x => x.id === li.dataset.id); if (it) { it.done = !it.done; commit(UI.day); } }
 });
 document.addEventListener("keydown", e => {
+  const pk = $("#pkRoot").firstElementChild;
+  if (pk) { if (e.key === "Escape") pk.click(); else if (e.key === "Enter") { e.preventDefault(); pk._ok(); } return; }
   if (e.key === "Escape" && $("#layer").firstElementChild) { closeSheet(); return; }
   if ($("#layer").firstElementChild || /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) return;
   if (e.key === "ArrowLeft") { UI.day = addDays(UI.day, -1); render(); }
@@ -681,11 +747,11 @@ $("#day").addEventListener("touchend", e => {
 }, { passive: true });
 
 load(); render();
-setInterval(() => { if (!dragging && !$("#layer").firstElementChild) render(); }, 30000);
+setInterval(() => { if (!dragging && !overlay()) render(); }, 30000);
 if (cloudCfg()) setTimeout(cloudSync, 400);
 
 /* atualização automática */
-const BUILD = "20261023231500";
+const BUILD = "20261024021000";
 window.APP_BUILD = (b => { if (!/^\d{14}$/.test(b)) return ""; const d = new Date(Date.UTC(+b.slice(0, 4), +b.slice(4, 6) - 1, +b.slice(6, 8), +b.slice(8, 10), +b.slice(10, 12))); return pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); })(BUILD);
 let swReg = null;
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(() => {}));
@@ -695,12 +761,12 @@ async function checkUpdate() {
   let latest = null;
   try { const h = await (await fetch("./?u=" + Date.now(), { cache: "no-store" })).text(); const m = h.match(/const BUILD = "([0-9]+)"/); latest = m && m[1]; } catch (e) { return; }
   if (!latest || latest === BUILD) return;
-  if ($("#layer").firstElementChild || dragging || document.activeElement.closest("#add")) { setTimeout(checkUpdate, 15000); return; }
+  if (overlay() || dragging || document.activeElement.closest("#add")) { setTimeout(checkUpdate, 15000); return; }
   try { if (sessionStorage.getItem("semana.updatedTo") === latest) return; sessionStorage.setItem("semana.updatedTo", latest); } catch (e) { /* ok */ }
   saveNow(); location.reload();
 }
 setTimeout(checkUpdate, 2500);
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { checkUpdate(); if (!dragging && !$("#layer").firstElementChild) render(); } });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { checkUpdate(); if (!dragging && !overlay()) render(); } });
 setInterval(checkUpdate, 5 * 60 * 1000);
 </script>
 </body>
