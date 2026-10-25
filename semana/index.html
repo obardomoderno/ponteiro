@@ -75,6 +75,7 @@ header{position:sticky;top:0;z-index:10;background:var(--bg);padding-top:max(10p
 .tm{flex:none;width:62px;display:flex;flex-direction:column;justify-content:center;font-size:14px;line-height:1.25;padding:8px 0}
 .tm b{font-weight:600}
 .tm span{color:var(--muted);font-size:13px}
+.tm b.end{color:var(--muted);font-weight:500}
 .tm.pin b{color:var(--accent);font-weight:800}
 .tm sup{font-size:9px;color:var(--muted);margin-left:1px;font-weight:600}
 .bd{flex:1;min-width:0;border:0;background:transparent;text-align:left;padding:9px 6px 9px 4px;display:flex;flex-direction:column;justify-content:center;gap:1px}
@@ -139,7 +140,11 @@ textarea.fld{resize:vertical;min-height:64px}
 .pk{width:100%;max-width:420px;background:var(--surface);border-radius:20px 20px 0 0;padding:4px 8px calc(14px + env(safe-area-inset-bottom,0px));animation:up .22s cubic-bezier(.2,.8,.2,1);user-select:none;-webkit-user-select:none}
 @media (min-width:700px){.pkv{align-items:center}.pk{border-radius:20px}}
 .pkbar{display:flex;align-items:center;justify-content:space-between;height:50px;padding:0 6px}
-.pkbar b{font-size:16px;font-weight:700}
+.pkin{width:104px;border:0;outline:none;background:var(--sunk);border-radius:10px;padding:7px 0;text-align:center;font-size:21px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink);caret-color:var(--accent)}
+.pkin:focus{box-shadow:inset 0 0 0 1.5px var(--accent)}
+.pkin.err{box-shadow:inset 0 0 0 1.5px var(--bad)}
+.pk.typing .pkw,.pk.typing .pkclr{display:none}
+.pk.typing{padding-bottom:12px}
 .pkbar button{border:0;background:none;color:var(--accent);font-size:17px;font-weight:500;padding:8px 8px}
 .pkbar button.ok{font-weight:700}
 .pkw{position:relative;display:flex;justify-content:center;align-items:center;height:220px;perspective:600px}
@@ -244,7 +249,7 @@ textarea.jtext{min-height:150px;font-size:17px;line-height:1.5;resize:none}
     <div class="dayhead"><div><h1 id="dt"></h1><div class="sub" id="ds"></div></div></div>
     <ul id="list"></ul>
     <form class="add" id="add" autocomplete="off">
-      <input name="n" placeholder="Nova atividade" enterkeyhint="done" aria-label="Atividade">
+      <input name="n" placeholder="Atividade" enterkeyhint="done" aria-label="Atividade">
       <input name="d" placeholder="Duração" enterkeyhint="done" aria-label="Duração" autocapitalize="off">
       <button type="button" class="tpick empty" id="add_t" aria-label="Horário">Hora</button>
       <button aria-label="Adicionar"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -446,7 +451,7 @@ function render() {
     if (it.note) meta.push(`<span class="note">${esc(it.note.split("\n")[0])}</span>`);
     return `<li class="it${it.done ? " done" : ""}${now}" data-id="${it.id}" style="--h:${hue(it.name)};${now ? "--p:" + p.toFixed(3) : ""}">
       <button class="ck" data-act="done" aria-label="Concluir"><span>${ICON.check}</span></button>
-      ${hasT ? `<div class="tm${r.anchor ? " pin" : ""}"><b>${r.s != null ? fmtT(r.s) : "&nbsp;"}</b><span>${r.e != null ? fmtT(r.e) : "&nbsp;"}</span></div>` : ""}
+      ${hasT ? `<div class="tm${r.anchor ? " pin" : ""}">${r.s != null ? `<b>${fmtT(r.s)}</b>` : ""}${r.e != null ? (r.s != null ? `<span>${fmtT(r.e)}</span>` : `<b class="end">${fmtT(r.e)}</b>`) : ""}</div>` : ""}
       <button class="bd" data-act="edit"><span class="nm">${esc(it.name)}</span>${meta.length ? `<span class="mt">${meta.join("")}</span>` : ""}</button>
       <div class="grip" aria-hidden="true">${ICON.grip}</div></li>`;
   }).join("");
@@ -497,30 +502,80 @@ function wheel(n, value, label) {
   col.addEventListener("click", e => { const it = e.target.closest(".wi"); if (it) col.scrollTo({ top: +it.dataset.i * ROW, behavior: "smooth" }); });
   col.addEventListener("keydown", e => { if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); col.scrollTo({ top: (idx() + (e.key === "ArrowUp" ? -1 : 1)) * ROW, behavior: "smooth" }); } });
   col._init = () => { col.scrollTop = (n * 3 + value) * ROW; paint(); };
+  col._set = v => { col.scrollTop = (n * 3 + v) * ROW; paint(); };
   col._val = () => ((idx() % n) + n) % n;
+  col.addEventListener("scroll", () => { if (col._onChange) col._onChange(); }, { passive: true });
   return col;
 }
 function pickTime(current, fallback, onPick, opts = {}) {
   const start = current || fallback || "12:00", [h0, m0] = start.split(":").map(Number);
   const v = document.createElement("div"); v.className = "pkv";
   v.innerHTML = `<div class="pk" role="dialog" aria-modal="true" aria-label="Horário">
-    <div class="pkbar"><button data-p="cancel">Cancelar</button><b>Horário</b><button class="ok" data-p="ok">OK</button></div>
+    <div class="pkbar"><button data-p="cancel">Cancelar</button><input class="pkin" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-label="Digitar horário"><button class="ok" data-p="ok">OK</button></div>
     <div class="pkw"><div class="pkband"></div></div>
     ${current && !opts.noClear ? `<button class="pkclr" data-p="clear">Sem horário fixo</button>` : ""}</div>`;
   const hw = wheel(24, h0, "Horas"), mw = wheel(60, m0, "Minutos"), colon = document.createElement("div");
   colon.className = "pkc"; colon.textContent = ":";
   $(".pkw", v).append(hw, colon, mw);
-  const close = () => { v.remove(); if (!$("#layer").firstElementChild) document.body.classList.remove("locked"); };
-  v._ok = () => { const t = pad(hw._val()) + ":" + pad(mw._val()); close(); onPick(t); };
-  v.addEventListener("click", e => {
-    if (e.target === v) { close(); return; }
+  const pk = $(".pk", v), inp = $(".pkin", v), vv = window.visualViewport;
+  const fromWheels = () => pad(hw._val()) + ":" + pad(mw._val());
+  /* digitação: "1440" → 14:40, "930" → 9:30; as rodas acompanham */
+  const typed = () => {
+    const d = inp.value.replace(/\D/g, "").slice(0, 4);
+    const one = d[0] > "2" || (d[0] === "2" && d[1] > "3") ;
+    const hh = one ? d.slice(0, 1) : d.slice(0, 2), mm = d.slice(hh.length, hh.length + 2);
+    return { d, hh, mm };
+  };
+  let wheelMode = false;
+  const sync = () => { if (wheelMode || document.activeElement !== inp) { inp.value = fromWheels(); inp.classList.remove("err"); } };
+  hw._onChange = mw._onChange = sync;
+  [hw, mw].forEach(c => ["pointerdown", "wheel", "touchstart", "keydown"].forEach(ev => c.addEventListener(ev, () => { wheelMode = true; }, { passive: true })));
+  inp.addEventListener("input", () => {
+    wheelMode = false;
+    const { d, hh, mm } = typed();
+    inp.value = hh + (d.length > hh.length ? ":" + mm : "");
+    inp.classList.remove("err");
+    if (hh && mm.length === 2) {
+      const h = +hh, m = +mm;
+      if (h > 23 || m > 59) { inp.classList.add("err"); return; }
+      hw._set(h); mw._set(m);
+    }
+  });
+  const coarse = matchMedia("(pointer: coarse)").matches;
+  const lift = () => { const kb = vv ? Math.max(0, innerHeight - vv.height - vv.offsetTop) : 0; v.style.paddingBottom = kb + "px"; };
+  if (vv) { vv.addEventListener("resize", lift); vv.addEventListener("scroll", lift); }
+  inp.addEventListener("focus", () => { if (coarse) pk.classList.add("typing"); inp.placeholder = fromWheels(); inp.value = ""; wheelMode = false; });
+  inp.addEventListener("blur", () => { pk.classList.remove("typing"); setTimeout(() => { if (inp.classList.contains("err")) return; const { hh, mm } = typed(); if (hh && (mm.length === 2 || !mm)) { const h = +hh, m = +(mm || 0); if (h <= 23 && m <= 59) { hw._set(h); mw._set(m); } } inp.value = fromWheels(); }, 0); });
+  const close = () => { if (vv) { vv.removeEventListener("resize", lift); vv.removeEventListener("scroll", lift); } v.remove(); if (!$("#layer").firstElementChild) document.body.classList.remove("locked"); };
+  v._cancel = close;
+  v._ok = () => {
+    let t = fromWheels();
+    if (document.activeElement === inp && inp.value.trim()) {
+      const { hh, mm } = typed(), h = +hh, m = +(mm || 0);
+      if (!hh || (mm && mm.length < 2) || h > 23 || m > 59) { bad(inp); return; }
+      t = pad(h) + ":" + pad(m);
+    }
+    inp.blur(); close(); onPick(t);
+  };
+  let downOnVeil = false;
+  const act = k => { if (k === "ok") v._ok(); else if (k === "clear") { close(); onPick(null); } else close(); };
+  /* age já no toque: assim o teclado fechando (e o layout mudando) não faz o botão "escapar" do dedo */
+  v.addEventListener("pointerdown", e => {
+    downOnVeil = e.target === v;
     const b = e.target.closest("[data-p]"); if (!b) return;
-    if (b.dataset.p === "ok") v._ok();
-    else if (b.dataset.p === "clear") { close(); onPick(null); }
-    else close();
+    e.preventDefault(); act(b.dataset.p);
+    /* engole o clique que viria logo depois, para não acertar o que estava por baixo */
+    const eat = ev => { ev.stopPropagation(); ev.preventDefault(); };
+    document.addEventListener("click", eat, { capture: true, once: true });
+    setTimeout(() => document.removeEventListener("click", eat, { capture: true }), 600);
+  });
+  v.addEventListener("click", e => {
+    if (e.target === v) { if (downOnVeil) close(); return; }
+    const b = e.target.closest("[data-p]"); if (b && e.detail === 0) act(b.dataset.p);
   });
   $("#pkRoot").appendChild(v); document.body.classList.add("locked");
-  hw._init(); mw._init();
+  hw._init(); mw._init(); inp.value = fromWheels();
+  if (!coarse) inp.focus();
 }
 const overlay = () => $("#layer").firstElementChild || $("#pkRoot").firstElementChild;
 
@@ -530,7 +585,9 @@ function openSheet(html, onClose) {
   closeSheet(true);
   const v = document.createElement("div"); v.className = "veil";
   v.innerHTML = `<div class="sheet" role="dialog" aria-modal="true"><div class="knob"></div>${html}</div>`;
-  v.addEventListener("click", e => { if (e.target === v) closeSheet(); });
+  let downOnVeil = false;
+  v.addEventListener("pointerdown", e => { downOnVeil = e.target === v; });
+  v.addEventListener("click", e => { if (e.target === v && downOnVeil) closeSheet(); });
   v._onClose = onClose;
   $("#layer").appendChild(v); document.body.classList.add("locked");
   return v.firstElementChild;
@@ -975,7 +1032,7 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("keydown", e => {
   const pk = $("#pkRoot").firstElementChild;
-  if (pk) { if (e.key === "Escape") pk.click(); else if (e.key === "Enter") { e.preventDefault(); pk._ok(); } return; }
+  if (pk) { if (e.key === "Escape") pk._cancel(); else if (e.key === "Enter") { e.preventDefault(); pk._ok(); } return; }
   if (e.key === "Escape" && $("#layer").firstElementChild) { closeSheet(); return; }
   if ($("#layer").firstElementChild || /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) return;
   if (e.key === "ArrowLeft") { UI.day = addDays(UI.day, -1); render(); }
@@ -1027,7 +1084,7 @@ setInterval(() => { if (!dragging && !overlay()) render(); }, 30000);
 if (cloudCfg()) setTimeout(cloudSync, 400);
 
 /* atualização automática */
-const BUILD = "20261025180000";
+const BUILD = "20261025185500";
 window.APP_BUILD = (b => { if (!/^\d{14}$/.test(b)) return ""; const d = new Date(Date.UTC(+b.slice(0, 4), +b.slice(4, 6) - 1, +b.slice(6, 8), +b.slice(8, 10), +b.slice(10, 12))); return pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); })(BUILD);
 let swReg = null;
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(() => {}));
