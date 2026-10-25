@@ -315,6 +315,17 @@ textarea.out{font-family:var(--mono);font-size:16px;min-height:240px}
 .rstep.on .box svg{opacity:1}
 .rstep.on .tx{color:var(--muted);text-decoration:line-through}
 .kindseg{margin-top:2px}
+.rgrp{border-top:1px solid var(--line);padding:2px 0}
+.rgrp:first-child{border-top:0}
+.rgh{display:flex;align-items:center;gap:8px;padding:8px 10px 2px 14px}
+.rgh b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rgh .sub{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.rgrp .rstep{padding-left:22px}
+.rgrp.single{display:flex;align-items:center;padding-right:10px}
+.rgrp.single .rstep{flex:1;padding-left:14px}
+.addact{display:flex;align-items:center;gap:6px;border:0;background:none;color:var(--accent);font-weight:700;font-size:14px;padding:10px 14px}
+.addact svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
+.rsteps .iconbtn.sm{border:0;background:none;color:var(--muted)}
 .embed .subtabs button{padding:7px 4px}
 </style>
 <script>if (/[?&]embed=1/.test(location.search) && window.parent !== window) document.documentElement.classList.add("embed");</script>
@@ -888,7 +899,6 @@ function stopRun(id, quiet) {
   if (r.state === "running") logInterval(r.typeId, r.since, end, r.comment, runTag(r));
   if (r.typeId === JOURNAL) addLog({ id: r.id, kind: "journal", start: r.started, end, ms: total, text: r.comment || "", checks: clone(r.checks || []) });
   for (const g of [...(r.regs || [])]) stopReg(r.id, g.id, true);
-  { const t = typeById(r.typeId); if (t && t.act && !(t.steps || []).length && !doneRecOf(t.id, sod(end))) addLog({ id: uid(), kind: "done", typeId: t.id, start: end, end, steps: [] }); }
   S.running = S.running.filter(x => x.id !== id); markApp();
   if (!quiet) { toast(r.typeId === JOURNAL ? "Registro salvo: " + fmtDur(total) + "." : (typeById(r.typeId) || GONE).name + ": " + fmtDur(total) + " registrados."); renderAll(); }
 }
@@ -974,7 +984,7 @@ function viewNow() {
       <div class="clock" data-run="${r.id}">${fmtClock(runElapsed(r))}</div>
       <div><span class="chip ${r.state === "running" ? "live" : ""}">${r.state === "running" ? "Rodando" : "Pausado"}</span> <span class="sub">desde ${fmtHM(runStartOf(r))}</span></div>
       ${r.comment ? `<div class="cm has" style="grid-column:2 / span 2">${esc(r.comment)}</div>` : ""}</div>
-      ${t.act && (t.steps || []).length ? (() => { const st = actState(t, sod(now())); return `<div class="rsteps">${t.steps.map(x => `<button class="rstep${st.have.has(x.id) ? " on" : ""}" data-act="step" data-id="${t.id}" data-s="${x.id}"><span class="box">${ICON.check}</span><span class="tx">${esc(x.text)}</span></button>`).join("")}</div>`; })() : ""}
+      ${runActsHTML(r)}
       </div>`; }).join("");
   const tile = t => { const on = S.running.some(r => descendants(t.id).includes(r.typeId) && r.state === "running"); const kids = t.isGroup ? childrenOf(t.id).length : 0;
     return `<button class="tile ${t.isGroup ? "group" : ""} ${on ? "on" : ""}" style="--c:${t.color}" data-act="${t.isGroup ? "opengroup" : "start"}" data-id="${t.id}" ${t.isGroup ? `aria-expanded="${UI.openGroup === t.id}"` : ""}>${kids ? `<span class="badge">${kids}</span>` : ""}<span class="ic em">${esc(t.icon)}</span><span class="t">${esc(t.name)}</span><span class="d">${fmtDur(today.get(t.id) || 0)}</span></button>`; };
@@ -983,7 +993,6 @@ function viewNow() {
   return `${exampleBanner()}
   <section class="section"><div class="rowhead"><h2>Em andamento</h2><span class="sub">${S.running.length ? S.running.length + (S.running.length > 1 ? " atividades" : " atividade") : ""}</span></div>
   ${runs ? `<div class="runlist">${runs}</div>` : `<div class="empty">Nada rodando.</div>`}</section>
-  ${actsToday()}
   <section class="section"><div class="rowhead"><h2>Começar</h2></div>
   ${topLevel().length ? `<div class="grid">${grid}</div>` : `<div class="empty">Nenhuma atividade. <button class="btn ghost" data-act="newtype">Criar a primeira</button></div>`}
   </section>`;
@@ -1001,16 +1010,17 @@ function actState(t, a, withMs) {
   return { rec: r, have, n, total: steps.length, done, partial: !done && n > 0, ms, run: S.running.find(x => x.typeId === t.id) };
 }
 const markAt = a => a === sod(now()) ? now() : a + 12 * HOUR;
-function toggleAct(id, a) {
+function toggleAct(id, a, inType) {
   const t = typeById(id); if (!t) return; const st = actState(t, a);
   if (st.done) { if (st.rec) removeLog(st.rec.id); }
-  else if (st.rec) { st.rec.steps = (t.steps || []).map(x => x.id); markDirty(monthKey(st.rec.start)); }
-  else addLog({ id: uid(), kind: "done", typeId: id, start: markAt(a), end: markAt(a), steps: (t.steps || []).map(x => x.id) });
+  else if (st.rec) { st.rec.steps = (t.steps || []).map(x => x.id); if (inType) st.rec.in = inType; markDirty(monthKey(st.rec.start)); }
+  else addLog({ id: uid(), kind: "done", typeId: id, start: markAt(a), end: markAt(a), steps: (t.steps || []).map(x => x.id), ...(inType ? { in: inType } : {}) });
   saveCache(); renderAll(); if (actRefresh) actRefresh();
 }
-function toggleStep(id, sid, a) {
+function toggleStep(id, sid, a, inType) {
   const t = typeById(id); if (!t) return; let r = doneRecOf(id, a);
   if (!r) { r = { id: uid(), kind: "done", typeId: id, start: markAt(a), end: markAt(a), steps: [] }; addLog(r); }
+  if (inType) r.in = inType;
   r.steps = r.steps.includes(sid) ? r.steps.filter(x => x !== sid) : [...r.steps, sid];
   if (!r.steps.length) removeLog(r.id); else markDirty(monthKey(r.start));
   saveCache(); renderAll(); if (actRefresh) actRefresh();
@@ -1030,6 +1040,30 @@ function actsToday() {
   const a = sod(now()), dn = L.filter(t => actState(t, a).done).length;
   return `<section class="section"><div class="rowhead"><h2>Ações de hoje</h2><span class="sub">${dn}/${L.length}</span></div><div class="alist">${L.map(t => actRow(t, a)).join("")}</div></section>`;
 }
+/* ações incluídas numa atividade rodando: r.acts = [ids]. O que é marcado fica no registro "done" do dia, com in = atividade */
+function runActsHTML(r) {
+  const inc = (r.acts || []).map(typeById).filter(t => t && t.act), a = sod(now());
+  const x = (t) => `<button class="iconbtn sm" data-act="runactrm" data-run="${r.id}" data-id="${t.id}" aria-label="Tirar ${esc(t.name)} desta atividade">${ICON.x}</button>`;
+  const body = inc.map(t => {
+    const st = actState(t, a);
+    if (!st.total) return `<div class="rgrp single" style="--c:${t.color}"><button class="rstep${st.done ? " on" : ""}" data-act="ract" data-run="${r.id}" data-id="${t.id}"><span class="box">${ICON.check}</span><span class="tx"><span class="em">${esc(t.icon)}</span> ${esc(t.name)}</span></button>${x(t)}</div>`;
+    return `<div class="rgrp" style="--c:${t.color}"><div class="rgh"><span class="em">${esc(t.icon)}</span><b>${esc(t.name)}</b><span class="sub">${st.n}/${st.total}</span>${x(t)}</div>
+      ${t.steps.map(s => `<button class="rstep${st.have.has(s.id) ? " on" : ""}" data-act="step" data-run="${r.id}" data-id="${t.id}" data-s="${s.id}"><span class="box">${ICON.check}</span><span class="tx">${esc(s.text)}</span></button>`).join("")}</div>`;
+  }).join("");
+  return `<div class="rsteps">${body}<button class="addact" data-act="runactadd" data-id="${r.id}">${ICON.plus}${inc.length ? "Mais ações" : "Incluir ações"}</button></div>`;
+}
+function pickActs(runId) {
+  const r = runById(runId); if (!r) return;
+  const L = acts().filter(t => !(r.acts || []).includes(t.id));
+  const el = openLayer("Incluir ações", L.length ? `<p class="small" style="margin:0">Toque para incluir em ${esc((typeById(r.typeId) || GONE).name)}.</p><div class="list">${L.map(t => `<button class="item" data-pick="${t.id}" style="--c:${t.color}"><span class="dot em">${esc(t.icon)}</span><span class="nm">${esc(t.name)}<br><span class="small" style="font-weight:400">${(t.steps || []).length ? "Grupo · " + t.steps.length + (t.steps.length > 1 ? " itens" : " item") : "Ação única"}</span></span><span></span></button>`).join("")}</div>`
+    : `<div class="empty">${acts().length ? "Todas as ações já estão nesta atividade." : "Nenhuma ação cadastrada ainda. Crie na aba <b>Ações</b>."}</div>`, { left: `<button class="btn ghost" data-act="close">Fechar</button>` });
+  el.querySelector(".fsbody").addEventListener("click", e => {
+    const b = e.target.closest("[data-pick]"); if (!b) return; const rr = runById(runId); if (!rr) return;
+    rr.acts = [...(rr.acts || []), b.dataset.pick]; markApp(); renderAll();
+    b.remove(); if (!el.querySelector("[data-pick]")) closeLayer(el);
+  });
+}
+
 /* checklist de um grupo no dia, sem precisar do cronômetro */
 let actRefresh = null;
 function openActDay(id, a) {
@@ -1054,7 +1088,7 @@ function viewActs() {
   const row = t => `<div class="item trow" role="button" tabindex="0" style="--c:${t.color}" data-act="editact" data-id="${t.id}" data-rid="${t.id}"><span class="dot em">${esc(t.icon)}</span><span class="nm">${esc(t.name)}<br><span class="small" style="font-weight:400">${(t.steps || []).length ? "Grupo · " + t.steps.length + (t.steps.length > 1 ? " itens" : " item") : "Ação única"}</span></span><span class="grip" aria-label="Arrastar para reordenar">${ICON.grip}</span></div>`;
   return `<section class="section"><div class="rowhead"><h2>Ações diárias</h2><button class="btn primary" data-act="newact">${ICON.plus} Nova ação</button></div>
   ${L.length ? `<div class="list" id="actlist">${L.map(row).join("")}</div>` : `<div class="empty">Crie o que você pratica todo dia. Uma ação pode ser única, como <b>Beber água</b>, ou um grupo de itens, como <b>Banho</b> (estender a toalha, fazer xixi antes, dobrar a roupa).</div>`}
-  <p class="small">As ações aparecem no Tempo, em <b>Agora</b>, para marcar ou cronometrar, e no Diário de cada dia.</p></section>
+  <p class="small">Para usar, inclua as ações dentro de uma atividade que está rodando no Tempo (botão <b>Incluir ações</b> no cartão dela). Elas também aparecem no Diário de cada dia.</p></section>
   ${arch.length ? `<section class="section"><div class="rowhead"><h2>Arquivadas</h2></div><div class="list">${arch.map(row).join("")}</div></section>` : ""}`;
 }
 function editAct(id) {
@@ -1386,7 +1420,6 @@ function editSavedReg(id) {
 function typeOptions(sel) {
   const opts = []; const walk = (pid, depth) => { for (const t of childrenOf(pid)) { if (!t.isGroup) opts.push(`<option value="${t.id}" ${t.id === sel ? "selected" : ""}>${"  ".repeat(depth)}${esc(t.icon)} ${esc(t.name)}</option>`); if (t.isGroup) walk(t.id, depth + 1); } };
   walk(null, 0);
-  for (const t of acts()) opts.push(`<option value="${t.id}" ${t.id === sel ? "selected" : ""}>${esc(t.icon)} ${esc(t.name)} (ação)</option>`);
   if (sel && !opts.some(o => o.includes(`value="${sel}"`)) && typeById(sel)) opts.unshift(`<option value="${sel}" selected>${esc(typeById(sel).name)}</option>`);
   return opts.join("");
 }
@@ -1666,7 +1699,10 @@ document.addEventListener("click", e => {
     case "hubsettings": hubPost({ hub: "semanaSettings" }); break;
     case "actdone": toggleAct(id, sod(now())); break;
     case "actopen": openActDay(id); break;
-    case "step": toggleStep(id, el.dataset.s, sod(now())); break;
+    case "step": toggleStep(id, el.dataset.s, sod(now()), runById(run)?.typeId); break;
+    case "ract": toggleAct(id, sod(now()), runById(run)?.typeId); break;
+    case "runactadd": pickActs(id); break;
+    case "runactrm": { const rr = runById(run); if (rr) { rr.acts = (rr.acts || []).filter(x => x !== id); markApp(); renderAll(); } break; }
     case "newact": editAct(null); break;
     case "editact": editAct(id); break;
   }
@@ -1706,7 +1742,7 @@ let hubQueue = [];
 function startByName(name) {
   const n = String(name || "").trim(); if (!n) return;
   if (!Store.ready) { hubQueue.push(n); return; }
-  const key = n.toLowerCase(), same = t => !t.system && t.name.trim().toLowerCase() === key;
+  const key = n.toLowerCase(), same = t => !t.system && !t.act && t.name.trim().toLowerCase() === key;
   UI.tab = "now"; window.scrollTo(0, 0);
   const grp = S.types.find(t => same(t) && t.isGroup && !t.archived);
   let t = S.types.find(x => same(x) && !x.isGroup && !x.archived) || (!grp && S.types.find(x => same(x) && !x.isGroup));
@@ -1733,10 +1769,10 @@ if (EMBED) {
   const waitReady = setInterval(() => { if (!Store.ready) return; clearInterval(waitReady); migrateActs(); hubSummary(); const q = hubQueue; hubQueue = []; q.forEach(startByName); }, 200);
   hubPost({ hub: "ready" });
 }
-window.PONTEIRO_BUILD = (b => { const d = new Date(Date.UTC(+b.slice(0, 4), +b.slice(4, 6) - 1, +b.slice(6, 8), +b.slice(8, 10), +b.slice(10, 12))); return pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); })("20261025223000");
+window.PONTEIRO_BUILD = (b => { const d = new Date(Date.UTC(+b.slice(0, 4), +b.slice(4, 6) - 1, +b.slice(6, 8), +b.slice(8, 10), +b.slice(10, 12))); return pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); })("20261025224500");
 boot();
 /* atualização automática: ao abrir, ao voltar para a tela e a cada 5 min, confere se há versão nova publicada e recarrega */
-const BUILD = "20261025223000";
+const BUILD = "20261025224500";
 let swReg = null;
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(() => {}));
 async function checkUpdate() {

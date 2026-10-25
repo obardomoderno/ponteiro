@@ -2,7 +2,7 @@
 
 Este repositório hospeda o **Ponteiro**, o app pessoal do dono (GitHub Pages): https://obardomoderno.github.io/ponteiro/
 
-É um app só, com cinco abas, nesta ordem: **Tempo** (cronômetro, ações de hoje, histórico, gráficos, atividades), **Diário**, **Semana** (planejamento com duração e horários fixos), **Ações** (cadastro das ações diárias) e **Ajustes**.
+É um app só, com cinco abas, nesta ordem: **Tempo** (cronômetro, histórico, gráficos, atividades), **Diário**, **Semana** (planejamento com duração e horários fixos), **Ações** (cadastro das ações diárias) e **Ajustes**.
 
 Por dentro, a raiz (`index.html`) é só a moldura com as abas. Ela carrega dois módulos em iframes com `?embed=1`, que conversam por `postMessage` e pelo `localStorage` (mesma origem):
 
@@ -13,7 +13,7 @@ Por dentro, a raiz (`index.html`) é só a moldura com as abas. Ela carrega dois
 Ligações entre os módulos:
 
 - O Tempo grava em `localStorage["hub.tempo"]` o tempo registrado por dia (`AAAA-MM-DD`) e por nome de atividade em minúsculas (pastas somam as de dentro), além das atividades rodando. A Semana mostra isso em cada item do plano e no resumo da semana.
-- As **Ações** (o que se pratica todo dia, singulares como "Beber água" ou grupos com itens como "Banho") moram no Tempo. São marcadas e cronometradas em Tempo → Agora, e aparecem como chips no Diário de cada dia. `hub.tempo` também leva `acts` (lista) e `ad` (por dia: `[itens marcados, feita 0/1, ids marcados]`); o Diário marca pelo `postMessage` `{hub:"act"|"step"}`.
+- As **Ações** (o que se pratica todo dia, singulares como "Beber água" ou grupos com itens como "Banho") moram no Tempo. Não são cronometradas sozinhas: são incluídas dentro de uma atividade que está rodando (`running[].acts` = ids das ações), onde os itens são marcados. Também aparecem como chips no Diário de cada dia. `hub.tempo` também leva `acts` (lista) e `ad` (por dia: `[itens marcados, feita 0/1, ids marcados]`); o Diário marca pelo `postMessage` `{hub:"act"|"step"}`.
 - O botão ▶ de um item de hoje na Semana inicia no Tempo a atividade com o mesmo nome (cria uma se não existir).
 - A Cópia no GitHub ativada nos Ajustes vale para os dois módulos.
 
@@ -40,9 +40,9 @@ Os arquivos seguem `{ "app": "...", "updatedAt": "<ISO>", "data": { ... } }`. Ho
 ### ponteiro.json → `data`
 
 - `types`: atividades `{ id, name, icon, color, order, archived, system }`. Ignore as que têm `system: true` (tipo interno "Diário").
-- Ações diárias são `types` com `act: true` e `steps: [ { id, text } ]` (vazio = ação singular, com itens = grupo). O tempo cronometrado nelas entra no histórico como qualquer atividade.
+- Ações diárias são `types` com `act: true` e `steps: [ { id, text } ]` (vazio = ação singular, com itens = grupo). Não aparecem em Começar nem em Atividades e não acumulam tempo próprio.
 - `running`: atividades em andamento `{ id, typeId, state: "running" | "paused", since, started, comment }`. O trecho atual vai de `since` até agora.
-- `L`: histórico agrupado por mês (`"log-AAAA-MM": [ ... ]`). Os itens **sem** `kind` são intervalos de tempo `{ id, typeId, start, end, comment, run? }`. Os itens com `kind: "done"` dizem o que foi feito de cada ação no dia: `{ id, kind: "done", typeId, start, steps: [ids dos itens marcados] }`, um por ação por dia. Uma ação singular está feita se o registro existe; um grupo, se todos os itens estão em `steps`. Ignore os outros valores de `kind` (recursos antigos removidos).
+- `L`: histórico agrupado por mês (`"log-AAAA-MM": [ ... ]`). Os itens **sem** `kind` são intervalos de tempo `{ id, typeId, start, end, comment, run? }`. Os itens com `kind: "done"` dizem o que foi feito de cada ação no dia: `{ id, kind: "done", typeId, start, steps: [ids dos itens marcados], in? }`, um por ação por dia; `in` é a atividade rodando em que foi marcada. Uma ação singular está feita se o registro existe; um grupo, se todos os itens estão em `steps`. Ignore os outros valores de `kind` (recursos antigos removidos).
 - `del`: ids apagados (lápides). Ignore.
 - `settings.dayEndHour`: hora em que o "dia" do dono termina (ex.: 5 = o dia vai de 05:00 a 05:00).
 
