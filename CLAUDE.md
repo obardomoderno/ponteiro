@@ -2,17 +2,18 @@
 
 Este repositório hospeda o **Ponteiro**, o app pessoal do dono (GitHub Pages): https://obardomoderno.github.io/ponteiro/
 
-É um app só, com cinco abas: **Tempo** (cronômetro, histórico, gráficos, atividades), **Semana** (planejamento com duração e horários fixos), **Hábitos**, **Diário** e **Ajustes**.
+É um app só, com cinco abas, nesta ordem: **Tempo** (cronômetro, ações de hoje, histórico, gráficos, atividades), **Diário**, **Semana** (planejamento com duração e horários fixos), **Ações** (cadastro das ações diárias) e **Ajustes**.
 
 Por dentro, a raiz (`index.html`) é só a moldura com as abas. Ela carrega dois módulos em iframes com `?embed=1`, que conversam por `postMessage` e pelo `localStorage` (mesma origem):
 
 - `tempo/`: o cronômetro (antes ficava na raiz). Também abre sozinho em https://obardomoderno.github.io/ponteiro/tempo/
-- `semana/`: plano da semana, hábitos e diário. Também abre sozinho em https://obardomoderno.github.io/ponteiro/semana/
+- `semana/`: diário e plano da semana (a aba Hábitos dele só aparece quando aberto sozinho; no app único os hábitos viraram Ações). Também abre sozinho em https://obardomoderno.github.io/ponteiro/semana/
 - `diario/`: app antigo, mantido só para quem ainda o usa. Os registros dele são trazidos para o diário da Semana automaticamente (ids `d-<id>`).
 
 Ligações entre os módulos:
 
 - O Tempo grava em `localStorage["hub.tempo"]` o tempo registrado por dia (`AAAA-MM-DD`) e por nome de atividade em minúsculas (pastas somam as de dentro), além das atividades rodando. A Semana mostra isso em cada item do plano e no resumo da semana.
+- As **Ações** (o que se pratica todo dia, singulares como "Beber água" ou grupos com itens como "Banho") moram no Tempo. São marcadas e cronometradas em Tempo → Agora, e aparecem como chips no Diário de cada dia. `hub.tempo` também leva `acts` (lista) e `ad` (por dia: `[itens marcados, feita 0/1, ids marcados]`); o Diário marca pelo `postMessage` `{hub:"act"|"step"}`.
 - O botão ▶ de um item de hoje na Semana inicia no Tempo a atividade com o mesmo nome (cria uma se não existir).
 - A Cópia no GitHub ativada nos Ajustes vale para os dois módulos.
 
@@ -39,8 +40,9 @@ Os arquivos seguem `{ "app": "...", "updatedAt": "<ISO>", "data": { ... } }`. Ho
 ### ponteiro.json → `data`
 
 - `types`: atividades `{ id, name, icon, color, order, archived, system }`. Ignore as que têm `system: true` (tipo interno "Diário").
+- Ações diárias são `types` com `act: true` e `steps: [ { id, text } ]` (vazio = ação singular, com itens = grupo). O tempo cronometrado nelas entra no histórico como qualquer atividade.
 - `running`: atividades em andamento `{ id, typeId, state: "running" | "paused", since, started, comment }`. O trecho atual vai de `since` até agora.
-- `L`: histórico agrupado por mês (`"log-AAAA-MM": [ ... ]`). Os itens **sem** `kind` são intervalos de tempo `{ id, typeId, start, end, comment, run? }`. Ignore os que têm `kind` (registros antigos de recursos que foram removidos).
+- `L`: histórico agrupado por mês (`"log-AAAA-MM": [ ... ]`). Os itens **sem** `kind` são intervalos de tempo `{ id, typeId, start, end, comment, run? }`. Os itens com `kind: "done"` dizem o que foi feito de cada ação no dia: `{ id, kind: "done", typeId, start, steps: [ids dos itens marcados] }`, um por ação por dia. Uma ação singular está feita se o registro existe; um grupo, se todos os itens estão em `steps`. Ignore os outros valores de `kind` (recursos antigos removidos).
 - `del`: ids apagados (lápides). Ignore.
 - `settings.dayEndHour`: hora em que o "dia" do dono termina (ex.: 5 = o dia vai de 05:00 a 05:00).
 

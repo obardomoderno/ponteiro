@@ -18,7 +18,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Ponteiro: um app só. Esta página é a moldura (abas embaixo); cada módulo roda numa área própria:
-   tempo/ (cronômetro, histórico, gráficos, atividades e ajustes) e semana/ (plano da semana, hábitos e diário). */
+   tempo/ (cronômetro, histórico, gráficos, atividades, ações diárias e ajustes) e semana/ (diário e plano da semana). */
 :root{
   --bg:#EEF2F4; --surface:#FFFFFF; --sunk:#E3E9EC; --ink:#122027; --muted:#56666F; --line:#D3DCE0;
   --accent:#0B7A75; --accent-soft:#D5ECEA;
@@ -66,12 +66,12 @@ const $ = s => document.querySelector(s);
 const ICON = {
   tempo: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>',
   plan: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8.5 3v4M15.5 3v4"/></svg>',
-  hab: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.2 12.3l2.6 2.6 5-5.4"/></svg>',
+  acts: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="5" rx="1.5"/><path d="M4.5 6.5l1 1 1.8-2"/><rect x="3" y="14" width="5" height="5" rx="1.5"/><path d="M11 6.5h10M11 16.5h10"/></svg>',
   jr: '<svg viewBox="0 0 24 24"><path d="M6 3.5h10.5a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6z"/><path d="M6 3.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2M9.5 8.5h5.5M9.5 12h5.5"/></svg>',
   more: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
 };
-const TABS = [["tempo", "Tempo"], ["plan", "Semana"], ["hab", "Hábitos"], ["jr", "Diário"], ["more", "Ajustes"]];
-const APP = { tempo: "tempo", more: "tempo", plan: "semana", hab: "semana", jr: "semana" };
+const TABS = [["tempo", "Tempo"], ["jr", "Diário"], ["plan", "Semana"], ["acts", "Ações"], ["more", "Ajustes"]];
+const APP = { tempo: "tempo", acts: "tempo", more: "tempo", plan: "semana", jr: "semana" };
 const store = { get: (k, d) => { try { return localStorage.getItem(k) || d; } catch (e) { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* ok */ } } };
 
 let cur = store.get("hub.tab", "tempo"); if (!APP[cur]) cur = "tempo";
@@ -120,6 +120,7 @@ addEventListener("message", e => {
   }
   else if (m.hub === "modal") { modal[app] = !!m.open; paint(); }
   else if (m.hub === "sub" && app === "tempo") { if (m.k !== "more") { tempoSub = m.k; store.set("hub.tempoSub", m.k); } }
+  else if ((m.hub === "act" || m.hub === "step") && app === "semana") { load("tempo"); send("tempo", m); }
   else if (m.hub === "semanaSettings") { go("plan"); send("semana", { hub: "settings" }); }
   else if (m.hub === "start") { tempoSub = "now"; store.set("hub.tempoSub", "now"); go("tempo"); send("tempo", { hub: "start", name: m.name }); }
 });
@@ -135,7 +136,7 @@ load(APP[cur]); paint();
 setTimeout(() => { load("tempo"); load("semana"); }, 1200);
 
 /* atualização automática da moldura (os módulos se atualizam sozinhos) */
-const BUILD = "20261025213000";
+const BUILD = "20261025223000";
 let swReg = null;
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(() => {}));
 async function checkUpdate() {

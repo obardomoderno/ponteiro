@@ -212,6 +212,7 @@ nav.tabs button[aria-current="page"]{color:var(--accent)}
 .stat{display:flex;gap:28px;margin:2px 0 4px}
 /* diário */
 .hov{display:flex;gap:6px;flex-wrap:wrap;margin:-2px 0 14px}
+.hchip .frac{color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums}
 .hchip{--c:hsl(var(--h,20) 50% var(--L));border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:6px 12px 6px 8px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:7px;color:var(--ink)}
 .hchip .d{width:14px;height:14px;border-radius:50%;border:1.6px solid var(--c);box-sizing:border-box;display:grid;place-items:center}
 .hchip.on{background:color-mix(in srgb,var(--c) 16%,transparent);border-color:transparent}
@@ -466,7 +467,8 @@ function render() {
   $("#strip").innerHTML = wk.map(d => {
     const dt = fromKey(d);
     let lab = "";
-    if (UI.tab === "jr") { const sc = habsOn(d), dm = doneMap(d), dn = sc.filter(h => dm[h.id]).length; lab = sc.length ? dn + "/" + sc.length : jrList(d).length ? "•" : ""; }
+    if (UI.tab === "jr" && EMBED) { const T = tempoInfo(), A = (T && T.acts) || [], o = (T && T.ad && T.ad[d]) || {}, dn = A.filter(a => o[a.id] && o[a.id][1]).length; lab = A.length && d <= tk && (dn || d === tk) ? dn + "/" + A.length : jrList(d).length ? "•" : ""; }
+    else if (UI.tab === "jr") { const sc = habsOn(d), dm = doneMap(d), dn = sc.filter(h => dm[h.id]).length; lab = sc.length ? dn + "/" + sc.length : jrList(d).length ? "•" : ""; }
     else { const tot = dayTotal(d); lab = tot ? fmtD(tot).replace(" min", "m") : ""; }
     return `<button class="dc${d === tk ? " today" : ""}" data-act="day" data-k="${d}"${d === k ? ' aria-current="date"' : ""}><span class="l">${WDL[dt.getDay()]}</span><span class="n">${dt.getDate()}</span><span class="h">${lab}</span></button>`;
   }).join("");
@@ -912,19 +914,39 @@ function dayTitle(k) {
   const sub = (title === WD[dt.getDay()] ? "" : WD[dt.getDay()].toLowerCase() + ", ") + dt.getDate() + " de " + MOL[dt.getMonth()];
   return [title, sub];
 }
+function actsOn(k) { const T = tempoInfo(); if (!T || !T.acts) return []; const o = (T.ad && T.ad[k]) || {}; return T.acts.map(a => { const x = o[a.id] || [0, 0, []]; return { ...a, n: x[0], done: !!x[1], have: new Set(x[2] || []) }; }); }
 function renderJr() {
-  const k = UI.day, [t, sub] = dayTitle(k), sc = habsOn(k), dm = doneMap(k), ents = jrSorted(k);
+  const k = UI.day, [t, sub] = dayTitle(k), sc = EMBED ? [] : habsOn(k), dm = doneMap(k), ents = jrSorted(k);
   $("#jt").textContent = t;
   const parts = [sub];
   if (ents.length) parts.push(ents.length === 1 ? "1 registro" : ents.length + " registros");
   if (sc.length) parts.push(sc.filter(h => dm[h.id]).length + "/" + sc.length + " hábitos");
+  const AO = EMBED && k <= todayKey() ? actsOn(k) : [];
+  if (AO.length) parts.push(AO.filter(a => a.done).length + "/" + AO.length + " ações");
   $("#js").textContent = parts.join(" · ");
-  $("#hov").innerHTML = sc.map(h => `<button class="hchip${dm[h.id] ? " on" : ""}" data-act="hjump" data-h="${h.id}" style="--h:${hue(h.name)}"><span class="d">${ICON.check}</span>${esc(h.name)}</button>`).join("");
-  $("#hov").hidden = !sc.length;
+  $("#hov").innerHTML = EMBED
+    ? AO.map(a => `<button class="hchip${a.done ? " on" : ""}" data-act="ajump" data-a="${a.id}" style="--c:${a.color}"><span class="d">${ICON.check}</span>${esc(a.icon)} ${esc(a.name)}${a.steps.length ? ` <span class="frac">${a.n}/${a.steps.length}</span>` : ""}</button>`).join("")
+    : sc.map(h => `<button class="hchip${dm[h.id] ? " on" : ""}" data-act="hjump" data-h="${h.id}" style="--h:${hue(h.name)}"><span class="d">${ICON.check}</span>${esc(h.name)}</button>`).join("");
+  $("#hov").hidden = EMBED ? !AO.length : !sc.length;
   $("#jlist").innerHTML = ents.map(e => {
     const hs = (e.habits || []).map(habById).filter(Boolean);
     return `<li><button class="je" data-act="openj" data-id="${e.id}"><span class="t">${esc(e.at)}</span><span class="c"><span class="x">${esc(e.text || "")}</span>${hs.length ? `<span class="hs">${hs.map(h => `<span style="--h:${hue(h.name)}">${esc(h.name)}</span>`).join("")}</span>` : ""}</span></button></li>`;
   }).join("");
+}
+function openActSheet(k, aid) {
+  const el = openSheet(`<h3 id="as_t"></h3><div class="hint" id="as_s" style="margin:-8px 0 10px"></div><div id="as_l"></div>
+    <div class="foot"><button class="btn" id="as_all"></button><button class="btn primary wide" id="as_ok">Pronto</button></div>`);
+  sheetRefresh = () => {
+    const a = actsOn(k).find(x => x.id === aid); if (!a) { closeSheet(true); return; }
+    $("#as_t", el).textContent = a.icon + " " + a.name;
+    $("#as_s", el).textContent = dayTitle(k).join(", ") + " · " + a.n + "/" + a.steps.length;
+    $("#as_l", el).innerHTML = a.steps.map(x => `<button class="hrow" data-s="${x.id}" aria-pressed="${a.have.has(x.id)}" style="--c:${a.color}"><span class="ck2" style="--c:${a.color}">${ICON.check}</span>${esc(x.text)}</button>`).join("");
+    $("#as_all", el).textContent = a.done ? "Desmarcar tudo" : "Marcar tudo";
+  };
+  sheetRefresh();
+  $("#as_l", el).onclick = e => { const b = e.target.closest("[data-s]"); if (b) { b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true")); hubPost({ hub: "step", id: aid, s: b.dataset.s, day: k }); } };
+  $("#as_all", el).onclick = () => hubPost({ hub: "act", id: aid, day: k });
+  $("#as_ok", el).onclick = () => closeSheet();
 }
 function openEntry(k, id, preHabit) {
   if (!id) {
@@ -946,7 +968,7 @@ function openEntry(k, id, preHabit) {
   sheetRefresh = () => {
     const e = cur(); if (!e) { closeSheet(true); return; }
     $("#j_t", el).textContent = e.at;
-    const wd = dt.getDay(), all = S.hab.list, sc = all.filter(h => h.days.includes(wd)), ot = all.filter(h => !h.days.includes(wd));
+    const wd = dt.getDay(), all = EMBED ? [] : S.hab.list, sc = all.filter(h => h.days.includes(wd)), ot = all.filter(h => !h.days.includes(wd));
     const dm = {}; jrSorted(k).forEach(x => { if (x.id !== id) (x.habits || []).forEach(h => { if (!dm[h]) dm[h] = x.at; }); });
     const row = h => { const mine = (e.habits || []).includes(h.id), other = !mine && dm[h.id];
       return `<button class="hrow" data-h="${h.id}" aria-pressed="${mine || !!other}"${other ? ' aria-disabled="true"' : ""} style="--h:${hue(h.name)}"><span class="ck2">${ICON.check}</span>${esc(h.name)}${other ? `<span class="w">às ${esc(other)}</span>` : ""}</button>`; };
@@ -1081,6 +1103,7 @@ document.addEventListener("click", e => {
   else if (act === "tab") { UI.tab = b.dataset.k; try { localStorage.setItem("semana.tab", UI.tab); } catch (err) { /* ok */ } scrollTo(0, 0); render(); }
   else if (act === "newj") openEntry(UI.day, null);
   else if (act === "openj") openEntry(UI.day, b.dataset.id);
+  else if (act === "ajump") { const a = actsOn(UI.day).find(x => x.id === b.dataset.a); if (!a) return; if (a.steps.length) openActSheet(UI.day, a.id); else { b.classList.toggle("on"); hubPost({ hub: "act", id: a.id, day: UI.day }); } }
   else if (act === "hjump") { const dm = doneMap(UI.day)[b.dataset.h]; if (dm) openEntry(UI.day, dm.entry); else openEntry(UI.day, null, b.dataset.h); }
   else if (act === "openh") openHabit(b.dataset.id);
   else if (act === "edit" && li) openEdit(li.dataset.id);
@@ -1164,7 +1187,7 @@ function fromDiario() {
 
 load(); { const nD = fromDiario(); render(); if (nD) toast(nD === 1 ? "1 registro do Diário antigo veio para cá" : nD + " registros do Diário antigo vieram para cá"); }
 setInterval(() => { if (!dragging && !overlay()) render(); }, 30000);
-addEventListener("storage", e => { if (e.key === "hub.tempo" && UI.tab === "plan" && !dragging) render(); if (e.key === "ponteiro.cloud") followCloud(); });
+addEventListener("storage", e => { if (e.key === "hub.tempo" && UI.tab !== "hab" && !dragging) render(); if (e.key === "ponteiro.cloud") followCloud(); });
 /* no app único, a cópia no GitHub ativada nos Ajustes vale também para a Semana (mesma chave, arquivo semana.json) */
 function followCloud() {
   if (!EMBED || cloudCfg()) return;
@@ -1190,7 +1213,7 @@ if (EMBED) {
 if (cloudCfg()) setTimeout(cloudSync, 400);
 
 /* atualização automática */
-const BUILD = "20261025213000";
+const BUILD = "20261025223000";
 window.APP_BUILD = (b => { if (!/^\d{14}$/.test(b)) return ""; const d = new Date(Date.UTC(+b.slice(0, 4), +b.slice(4, 6) - 1, +b.slice(6, 8), +b.slice(8, 10), +b.slice(10, 12))); return pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); })(BUILD);
 let swReg = null;
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(() => {}));
