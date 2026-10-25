@@ -4,7 +4,7 @@ Este repositório hospeda dois apps pessoais do dono (GitHub Pages):
 
 - **Ponteiro**: registro de tempo por atividade. https://obardomoderno.github.io/ponteiro/
 - **Diário**: registros escritos com grupos de hábitos. https://obardomoderno.github.io/ponteiro/diario/
-- **Semana**: planejamento semanal com duração e horários fixos. https://obardomoderno.github.io/ponteiro/semana/
+- **Semana**: planejamento semanal com duração e horários fixos, hábitos por dia da semana e diário. https://obardomoderno.github.io/ponteiro/semana/
 
 ## Onde estão os dados
 
@@ -46,6 +46,8 @@ Os dois arquivos seguem `{ "app": "...", "updatedAt": "<ISO>", "data": { ... } }
 - `items`: atividades em ordem `{ id, name, dur, at, done, note }`. `dur` é a duração planejada em minutos (`null` = livre). `at` é o horário fixo `"HH:MM"` (`null` = calculado).
 - Os horários das atividades sem `at` são calculados, nunca guardados: entre dois horários fixos, as atividades preenchem o intervalo (as livres dividem a sobra; se não houver livres, as durações são ajustadas proporcionalmente, ou só a última se `settings.fit` for `"last"`). Antes do primeiro horário fixo, conta-se para trás com as durações; depois do último, para frente. Um horário fixo menor que o anterior cai no dia seguinte. Dia sem horário fixo não tem horários.
 - `settings`: `{ weekStart (1 = segunda, 0 = domingo), fit ("prop" | "last"), mt }`.
+- `hab`: `{ list, mt }`. Cada hábito é `{ id, name, days, created }`: `days` são os dias da semana em que ele roda (0 = domingo … 6 = sábado) e `created` é a data `"AAAA-MM-DD"` a partir da qual ele conta.
+- `jr`: diário, um objeto por data `"AAAA-MM-DD": { entries, mt }`. Cada registro é `{ id, at ("HH:MM"), text, habits }`, e `habits` são os ids dos hábitos marcados como feitos nele. Um hábito está feito no dia se aparece em qualquer registro daquela data.
 
 ## Como ajudar
 
