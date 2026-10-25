@@ -16,6 +16,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
+<script>if (/[?&]embed=1/.test(location.search) && window.parent !== window) document.documentElement.classList.add("embed");</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{
   color-scheme:light;
@@ -238,6 +240,30 @@ textarea.jtext{min-height:150px;font-size:17px;line-height:1.5;resize:none}
 .hrow[aria-disabled="true"]{opacity:.55}
 .hrow .w{margin-left:auto;font-size:13px;color:var(--muted);font-weight:500}
 .linkb{border:0;background:none;color:var(--accent);font-weight:600;font-size:14px;padding:8px 4px}
+/* ligação com o Tempo: iniciar pelo plano e tempo registrado */
+.go{flex:none;width:40px;border:0;background:transparent;display:grid;place-items:center;color:var(--faint);padding:0}
+.go span{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--sunk);color:var(--muted)}
+.go svg{width:12px;height:12px;fill:currentColor;stroke:none;margin-left:2px}
+.go.on span{background:var(--accent);color:var(--accent-ink)}
+.go.on svg{margin-left:0}
+.mt .trk{display:inline-flex;align-items:center;gap:3px;font-weight:600;color:var(--muted)}
+.mt .trk svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
+.mt .trk.live{color:var(--accent)}
+.sum .tk{color:var(--accent);font-weight:600}
+/* dentro do app único: mesmo visual do Tempo e sem barra de abas própria (a moldura cuida das abas) */
+.embed{
+  --bg:#EEF2F4; --surface:#FFFFFF; --sunk:#E3E9EC; --ink:#122027; --muted:#56666F; --faint:#93A2AA; --line:#D3DCE0;
+  --accent:#0B7A75; --accent-ink:#FFFFFF; --accent-soft:#D5ECEA; --bad:#C0392B; --L:44%;
+  --font:"Atkinson Hyperlegible","Helvetica Neue",Arial,sans-serif; --display:"Bricolage Grotesque","Avenir Next","Segoe UI",sans-serif;
+  --shadow:0 1px 2px rgba(18,32,39,.06),0 4px 14px rgba(18,32,39,.06)}
+@media (prefers-color-scheme: dark){.embed{
+  --bg:#0E1417; --surface:#172126; --sunk:#111A1E; --ink:#E4ECEF; --muted:#93A3AB; --faint:#5F7079; --line:#26343B;
+  --accent:#3FC1B8; --accent-ink:#06211F; --accent-soft:#163A38; --bad:#EF7B6E; --L:62%;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25)}}
+.embed nav.tabs{display:none}
+.embed .app{padding-bottom:32px}
+.embed .toast{bottom:16px}
+.embed .dayhead h1,.embed .sheet h3,.embed .big2,.embed .wk{font-family:var(--display);font-weight:700}
 </style>
 </head>
 <body>
@@ -411,7 +437,21 @@ function commit(k) { S.days[k] = { items: items(k), mt: Date.now() }; save(); re
 const hue = name => { let h = 0; for (const ch of String(name).toLowerCase().trim()) h = (h * 31 + ch.codePointAt(0)) >>> 0; return h % 360; };
 
 let UI = { day: todayKey(), tab: (() => { try { return localStorage.getItem("semana.tab") || "plan"; } catch (e) { return "plan"; } })() };
+{ const tp = new URLSearchParams(location.search).get("tab"); if (["plan", "hab", "jr"].includes(tp)) UI.tab = tp; }
 if (!["plan", "hab", "jr"].includes(UI.tab)) UI.tab = "plan";
+const EMBED = document.documentElement.classList.contains("embed");
+function hubPost(m) { if (EMBED) try { window.parent.postMessage({ app: "semana", ...m }, location.origin); } catch (e) { /* ok */ } }
+/* tempo registrado no Tempo (cronômetro), por dia e nome da atividade */
+function tempoInfo() { try { const T = JSON.parse(localStorage.getItem("hub.tempo") || "null"); return T && T.days ? T : null; } catch (e) { return null; } }
+function tracked(T, k, name) {
+  if (!T) return null;
+  const key = String(name).trim().toLowerCase(), live = k === T.day && (T.running || []).includes(key);
+  const ms = ((T.days[k] || {})[key] || 0) + (live ? Math.max(0, Date.now() - T.at) : 0);
+  return ms >= 60000 || live ? { min: Math.floor(ms / 60000), live } : null;
+}
+const CLOCK = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>';
+const PLAY = '<svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg>';
+const LIVE = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/></svg>';
 
 /* ---------- desenho ---------- */
 function dayTotal(k) { return compute(items(k)).reduce((a, r) => a + (r.d || 0), 0); }
@@ -448,6 +488,7 @@ function render() {
   $("#ds").textContent = sub.join(" · ");
 
   let nowM = null; if (k === tk) { const n = new Date(); nowM = n.getHours() * 60 + n.getMinutes(); }
+  const T = tempoInfo(), canGo = EMBED && k === tk;
   $("#list").innerHTML = list.map((it, i) => {
     const r = R[i];
     let now = "", p = 0;
@@ -456,11 +497,14 @@ function render() {
     if (r.fit) meta.push(`<span class="fit">${fmtD(r.d)}</span><span class="was">${fmtD(it.dur)}</span>`);
     else if (r.d != null) meta.push(`<span>${fmtD(r.d)}</span>`);
     if (r.squeeze) meta.push(`<span class="gap">sem espaço antes</span>`);
+    const tr = tracked(T, k, it.name);
+    if (tr) meta.push(`<span class="trk${tr.live ? " live" : ""}" title="Registrado no Tempo">${CLOCK}${tr.min ? fmtD(tr.min) : "agora"}</span>`);
     if (it.note) meta.push(`<span class="note">${esc(it.note.split("\n")[0])}</span>`);
     return `<li class="it${it.done ? " done" : ""}${now}" data-id="${it.id}" style="--h:${hue(it.name)};${now ? "--p:" + p.toFixed(3) : ""}">
       <button class="ck" data-act="done" aria-label="Concluir"><span>${ICON.check}</span></button>
       ${hasT ? `<div class="tm${r.anchor ? " pin" : ""}">${r.s != null ? `<b>${fmtT(r.s)}</b>` : ""}${r.e != null ? (r.s != null ? `<span>${fmtT(r.e)}</span>` : `<b class="end">${fmtT(r.e)}</b>`) : ""}</div>` : ""}
       <button class="bd" data-act="edit"><span class="nm">${esc(it.name)}</span>${meta.length ? `<span class="mt">${meta.join("")}</span>` : ""}</button>
+      ${canGo ? `<button class="go${tr && tr.live ? " on" : ""}" data-act="go" aria-label="${tr && tr.live ? "Ver no Tempo" : "Iniciar no Tempo"}"><span>${tr && tr.live ? LIVE : PLAY}</span></button>` : ""}
       <div class="grip" aria-hidden="true">${ICON.grip}</div></li>`;
   }).join("");
   if (sheetRefresh) sheetRefresh();
@@ -706,13 +750,16 @@ function openSummary() {
   const wk = weekOf(UI.day), agg = new Map(); let total = 0, n = 0, dn = 0;
   wk.forEach(d => { const l = items(d), R = compute(l); l.forEach((it, i) => { n++; if (it.done) dn++; const m = R[i].d; if (!m) return; const key = it.name.trim().toLowerCase(); const o = agg.get(key) || { name: it.name.trim(), m: 0, c: 0 }; o.m += m; o.c++; agg.set(key, o); total += m; }); });
   const rows = [...agg.values()].sort((a, b) => b.m - a.m), max = rows[0] ? rows[0].m : 1;
+  const T = tempoInfo(); let tkTot = 0;
+  rows.forEach(r => { r.tk = 0; if (T) wk.forEach(d => { const x = tracked(T, d, r.name); if (x) r.tk += x.min; }); tkTot += r.tk; });
   openSheet(`
     <h3>Semana</h3>
     <div class="row" style="gap:28px;margin-bottom:18px">
       <div><div class="big2">${total ? fmtD(total) : "0"}</div><div class="hint">planejadas</div></div>
+      ${tkTot ? `<div><div class="big2">${fmtD(tkTot)}</div><div class="hint">registradas no Tempo</div></div>` : ""}
       ${n ? `<div><div class="big2">${dn}/${n}</div><div class="hint">concluídas</div></div>` : ""}
     </div>
-    <div class="sum">${rows.map(r => `<div style="--h:${hue(r.name)}"><div class="r1"><span>${esc(r.name)}</span><span>${fmtD(r.m)}${r.c > 1 ? " · " + r.c + "×" : ""}</span></div><div class="bar2"><i style="width:${(r.m / max * 100).toFixed(1)}%"></i></div></div>`).join("")}</div>`);
+    <div class="sum">${rows.map(r => `<div style="--h:${hue(r.name)}"><div class="r1"><span>${esc(r.name)}</span><span>${r.tk ? `<span class="tk">${fmtD(r.tk)}</span> de ` : ""}${fmtD(r.m)}${r.c > 1 ? " · " + r.c + "×" : ""}</span></div><div class="bar2"><i style="width:${(r.m / max * 100).toFixed(1)}%"></i></div></div>`).join("")}</div>`);
 }
 
 function openSettings() {
@@ -990,7 +1037,7 @@ function cloudSetup() {
       <p class="hint">${esc(c.repo)} · ${CLOUD_FILE}</p>
       <div class="foot"><button class="btn danger" id="c_off">Desativar</button><button class="btn primary wide" id="c_now">Sincronizar agora</button></div>`);
     $("#c_now", el).onclick = async () => { $("#c_now", el).disabled = true; await cloudSync(); closeSheet(true); const cc = cloudCfg(); toast(cc && cc.err ? cc.err : "Sincronizado"); };
-    $("#c_off", el).onclick = ev => arm(ev.currentTarget, "Toque de novo", () => { cloudSaveCfg(null); closeSheet(true); toast("Cópia desativada"); });
+    $("#c_off", el).onclick = ev => arm(ev.currentTarget, "Toque de novo", () => { cloudSaveCfg(null); try { localStorage.setItem("semana.cloudOff", "1"); } catch (e) { /* ok */ } closeSheet(true); toast("Cópia desativada"); });
     return;
   }
   const bk = borrowedKey();
@@ -1008,7 +1055,7 @@ function cloudSetup() {
     msg("Conectando…");
     let r; try { r = await fetch("https://api.github.com/repos/" + repo, { cache: "no-store", headers: { Accept: "application/vnd.github+json", Authorization: "Bearer " + token } }); } catch (e) { msg("Sem conexão com o GitHub."); return; }
     if (!r.ok) { msg(cloudErr(r.status)); return; }
-    cloudSaveCfg({ repo, token }); await cloudSync();
+    cloudSaveCfg({ repo, token }); try { localStorage.removeItem("semana.cloudOff"); } catch (e) { /* ok */ } await cloudSync();
     const cc = cloudCfg(); if (cc && cc.err) { msg(cc.err); return; }
     closeSheet(true); render(); toast("Sincronizado");
   };
@@ -1037,6 +1084,7 @@ document.addEventListener("click", e => {
   else if (act === "hjump") { const dm = doneMap(UI.day)[b.dataset.h]; if (dm) openEntry(UI.day, dm.entry); else openEntry(UI.day, null, b.dataset.h); }
   else if (act === "openh") openHabit(b.dataset.id);
   else if (act === "edit" && li) openEdit(li.dataset.id);
+  else if (act === "go" && li) { const it = items(UI.day).find(x => x.id === li.dataset.id); if (it) hubPost({ hub: "start", name: it.name }); }
   else if (act === "done" && li) { const it = items(UI.day).find(x => x.id === li.dataset.id); if (it) { it.done = !it.done; commit(UI.day); } }
 });
 document.addEventListener("keydown", e => {
@@ -1094,12 +1142,55 @@ document.addEventListener("touchend", e => {
   sw = null;
 }, { passive: true });
 
-load(); render();
+function fromDiario() {
+  let D; try { D = JSON.parse(localStorage.getItem("diario.v1") || "null"); } catch (e) { D = null; }
+  if (!D || !Array.isArray(D.entries) || !D.entries.length) return 0;
+  let seen; try { seen = new Set(JSON.parse(localStorage.getItem("semana.fromDiario") || "[]")); } catch (e) { seen = new Set(); }
+  const off = ((D.settings && D.settings.dayEndHour) || 0) * 3600000; let n = 0;
+  for (const e of D.entries) {
+    if (!e || !e.id || seen.has(e.id) || typeof e.at !== "number") continue;
+    seen.add(e.id);
+    const parts = [String(e.text || "").trim()];
+    for (const g of e.checks || []) { const its = g.items || []; if (!its.length) continue; parts.push(`${g.icon ? g.icon + " " : ""}${g.name}: ${its.filter(i => i.done).length}/${its.length}\n` + its.map(i => (i.done ? "✓ " : "○ ") + i.text).join("\n")); }
+    const text = parts.filter(Boolean).join("\n\n"); if (!text) continue;
+    const dt = new Date(e.at), k = keyOf(new Date(e.at - off)), list = jrList(k);
+    if (list.some(x => x.id === "d-" + e.id)) continue;
+    S.jr[k] = { entries: [...list, { id: "d-" + e.id, at: pad(dt.getHours()) + ":" + pad(dt.getMinutes()), text, habits: [] }], mt: Date.now() }; n++;
+  }
+  try { localStorage.setItem("semana.fromDiario", JSON.stringify([...seen])); } catch (e) { /* ok */ }
+  if (n) save();
+  return n;
+}
+
+load(); { const nD = fromDiario(); render(); if (nD) toast(nD === 1 ? "1 registro do Diário antigo veio para cá" : nD + " registros do Diário antigo vieram para cá"); }
 setInterval(() => { if (!dragging && !overlay()) render(); }, 30000);
+addEventListener("storage", e => { if (e.key === "hub.tempo" && UI.tab === "plan" && !dragging) render(); if (e.key === "ponteiro.cloud") followCloud(); });
+/* no app único, a cópia no GitHub ativada nos Ajustes vale também para a Semana (mesma chave, arquivo semana.json) */
+function followCloud() {
+  if (!EMBED || cloudCfg()) return;
+  try { if (localStorage.getItem("semana.cloudOff")) return; } catch (e) { return; }
+  const bk = borrowedKey(); if (!bk) return;
+  cloudSaveCfg({ repo: bk.repo, token: bk.token }); cloudSoon(500);
+}
+followCloud();
+if (EMBED) {
+  addEventListener("message", e => {
+    if (e.origin !== location.origin || !e.data || e.data.hub == null) return;
+    const m = e.data;
+    if (m.hub === "tab" && ["plan", "hab", "jr"].includes(m.k)) {
+      if (UI.tab === m.k && m.top) { UI.day = todayKey(); scrollTo({ top: 0, behavior: "smooth" }); render(); return; }
+      UI.tab = m.k; try { localStorage.setItem("semana.tab", UI.tab); } catch (err) { /* ok */ } scrollTo(0, 0); render();
+    }
+    else if (m.hub === "settings") openSettings();
+  });
+  const mo = new MutationObserver(() => hubPost({ hub: "modal", open: !!overlay() }));
+  mo.observe($("#layer"), { childList: true }); mo.observe($("#pkRoot"), { childList: true });
+  hubPost({ hub: "ready" });
+}
 if (cloudCfg()) setTimeout(cloudSync, 400);
 
 /* atualização automática */
-const BUILD = "20261025201500";
+const BUILD = "20261025213000";
 window.APP_BUILD = (b => { if (!/^\d{14}$/.test(b)) return ""; const d = new Date(Date.UTC(+b.slice(0, 4), +b.slice(4, 6) - 1, +b.slice(6, 8), +b.slice(8, 10), +b.slice(10, 12))); return pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); })(BUILD);
 let swReg = null;
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(() => {}));

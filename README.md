@@ -1,11 +1,14 @@
 # Ponteiro no GitHub Pages
 
-Registrador de tempo instalável no iPhone e no Mac. É hospedado de graça pelo GitHub Pages, abre sem internet e sincroniza entre aparelhos usando um gist secreto e criptografado na sua conta do GitHub.
+App único com registro de tempo, planejamento da semana, hábitos e diário, instalável no iPhone e no Mac. É hospedado de graça pelo GitHub Pages, abre sem internet e sincroniza entre aparelhos usando um gist secreto e criptografado na sua conta do GitHub.
 
 ## Arquivos
 
 ```
-index.html             o app
+index.html             o app (moldura com as abas)
+tempo/                 cronômetro, histórico, gráficos e atividades
+semana/                plano da semana, hábitos e diário
+diario/                app antigo (os registros dele aparecem no diário novo)
 sw.js                  guarda o app no aparelho para abrir offline
 manifest.webmanifest   instalação como app (nome, ícone, tela cheia)
 *.png                  ícones 180, 192 e 512 px
@@ -62,4 +65,4 @@ Na versão anterior (artifact do Claude ou Netlify): **Mais → Backup completo 
 
 ## Atualizar o app depois
 
-Envie os arquivos novos para o repositório. Quem já instalou recebe a versão nova na próxima abertura com internet. Ao mudar o `sw.js`, aumente o número em `VERSION` (`ponteiro-v2`, …).
+Envie os arquivos novos para o repositório. Quem já instalou recebe a versão nova na próxima abertura com internet. Ao mudar um `sw.js`, aumente o número em `VERSION`. Cada módulo tem o próprio `BUILD` no fim do `index.html`; aumente-o para os aparelhos recarregarem.
