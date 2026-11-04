@@ -1,6 +1,6 @@
 // Service worker do Ramo: guarda o app no aparelho para abrir sem internet.
 // Funciona em qualquer subpasta (ex.: usuario.github.io/ponteiro/ramo/). A sincronização com o GitHub nunca passa pelo cache.
-const VERSION = "ramo-v1";
+const VERSION = "ramo-v2";
 const HOME = new URL("./", self.location).href;
 const SHELL = ["./", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
@@ -31,6 +31,7 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
+  if (url.searchParams.has("u")) return;   // verificação de versão nova: nunca do cache
   const cacheable = url.origin === self.location.origin || url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com";
   if (!cacheable) return;   // api.github.com e afins vão direto para a rede
   e.respondWith(

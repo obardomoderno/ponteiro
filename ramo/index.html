@@ -233,6 +233,7 @@ textarea:focus,input:focus{border-color:#DCC6A4;background:#fff;box-shadow:0 0 0
 .syncpill.err{color:var(--danger);border-color:#F1D3CB}
 .syncpill.err .sdot{background:var(--danger)}
 .hero-sync{margin:-14px 0 22px}
+.side .foot .ver{font-size:11px;color:var(--faint);margin:8px 0 0 4px}
 .sy-l{display:grid;gap:6px;font-size:12px;font-weight:600;color:var(--muted);margin-top:12px}
 .sy-l input{height:42px;font-size:14px}
 .sy-p{font-size:13px;color:var(--ink2);margin:12px 0 0;line-height:1.5}
@@ -548,7 +549,7 @@ const EVL = {
   tarefa_reaberta: 'Tarefa reaberta', tarefa_reaberta_auto: 'Tarefa reaberta automaticamente (subtarefa nova ou reaberta)', tarefa_excluida: 'Tarefa excluída',
   tarefa_duplicada: 'Tarefa duplicada', tarefa_movida: 'Tarefa movida', tarefa_movida_projeto: 'Tarefa movida para outro projeto', modelo_inserido: 'Modelo inserido',
   cronometro_iniciado: 'Cronômetro iniciado', cronometro_pausado: 'Cronômetro pausado', tempo_manual: 'Tempo manual adicionado', tempo_editado: 'Registro de tempo editado',
-  tempo_apagado: 'Registro de tempo apagado', comentario: 'Comentário adicionado', nota_sessao: 'Nota da sessão registrada', descricao_editada: 'Descrição da tarefa alterada', comentario_apagado: 'Comentário apagado', modelo_criado: 'Modelo criado', modelo_excluido: 'Modelo excluído'
+  tempo_recuperado: 'Sessão recuperada do histórico', tempo_apagado: 'Registro de tempo apagado', comentario: 'Comentário adicionado', nota_sessao: 'Nota da sessão registrada', descricao_editada: 'Descrição da tarefa alterada', comentario_apagado: 'Comentário apagado', modelo_criado: 'Modelo criado', modelo_excluido: 'Modelo excluído'
 };
 function locate(tid) {
   const rec = (list, chain) => { for (const t of list) { if (t.id === tid) return { t, chain }; const x = rec(t.children, [...chain, t]); if (x) return x; } return null; };
@@ -561,6 +562,7 @@ function ev(a, o = {}) {
   if (o.t) { const L = locate(o.t.id); if (L) { p = p || L.p; e.tn = [...L.chain, o.t].map(x => x.title || 'Sem título').join(' > '); } else e.tn = o.t.title || 'Sem título'; e.tid = o.t.id; }
   if (p) { e.pid = p.id; e.pn = projPath(p); }
   if (o.d) e.d = o.d;
+  if (o.x) Object.assign(e, o.x);
   S.events.push(e); if (S.events.length > 50000) S.events.splice(0, S.events.length - 50000);
 }
 
@@ -611,7 +613,7 @@ function stopTimer(ask) {
   const e = findGlobal(S.running.tid), end = Date.now(), note = (S.running.note || '').trim();
   if (e && end - S.running.start >= 1000) {
     const l = { start: S.running.start, end }; if (note) l.note = note;
-    e.t.logs.push(l); ev('cronometro_pausado', { t: e.t, d: 'sessão ' + sessTxt(S.running.start, end) + (note ? ` — nota: ${note}` : '') });
+    e.t.logs.push(l); ev('cronometro_pausado', { t: e.t, d: 'sessão ' + sessTxt(S.running.start, end) + (note ? ` — nota: ${note}` : ''), x: { s: l.start, e: end } });
     if (ask) pendingNote = { tid: e.t.id, start: l.start };
   }
   S.running = null;
@@ -693,7 +695,7 @@ function renderSide() {
       </div>`).join('') : '<div class="muted" style="padding:6px 12px">Nenhum projeto</div>'}
     </div>
     ${run ? runPill(run) : ''}
-    <div class="foot">${syncPill()}</div>`;
+    <div class="foot">${syncPill()}<div class="ver">Versão ${BUILD}</div></div>`;
 }
 
 function renderChrome() {
@@ -800,7 +802,7 @@ function logsHTML(t) {
        <textarea class="runNote" rows="2" placeholder="Anote o que está fazendo enquanto trabalha…">${esc(S.running.note || '')}</textarea></div>`);
   t.logs.map((l, i) => ({ l, i })).sort((a, b) => b.l.start - a.l.start).forEach(({ l, i }) => out.push(isEd(i)
     ? `<div class="lg-edit"><label>Início<input type="datetime-local" step="1" class="le-start" value="${toInput(l.start)}"></label><label>Fim<input type="datetime-local" step="1" class="le-end" value="${toInput(l.end)}"></label><label class="full">Nota<textarea class="le-note" rows="3" placeholder="O que foi feito nesta sessão">${esc(l.note || '')}</textarea></label>${acts}</div>`
-    : `<div class="lg"><div class="lg-top"><span>${fdt(l.start)} → ${sameDay(l.start, l.end) ? ftime(l.end) : fdt(l.end)}${l.manual ? '<span class="tag">manual</span>' : ''}${l.edited ? '<span class="tag">editado</span>' : ''}</span><span class="lga"><span class="dur">${fmt(l.end - l.start)}</span><button class="x e" data-act="edit-log" data-i="${i}" title="Editar">${I.edit}</button><button class="x" data-act="del-log" data-i="${i}" title="Apagar">×</button></span></div>
+    : `<div class="lg"><div class="lg-top"><span>${fdt(l.start)} → ${sameDay(l.start, l.end) ? ftime(l.end) : fdt(l.end)}${l.manual ? '<span class="tag">manual</span>' : ''}${l.edited ? '<span class="tag">editado</span>' : ''}${l.recovered ? '<span class="tag">recuperada</span>' : ''}</span><span class="lga"><span class="dur">${fmt(l.end - l.start)}</span><button class="x e" data-act="edit-log" data-i="${i}" title="Editar">${I.edit}</button><button class="x" data-act="del-log" data-i="${i}" title="Apagar">×</button></span></div>
        ${l.note ? `<div class="lg-note" data-act="note-log" data-i="${i}" title="Editar nota">${esc(l.note)}</div>` : `<button class="lg-addnote" data-act="note-log" data-i="${i}">${I.edit} Adicionar nota</button>`}</div>`));
   return out.length ? out.join('') : '<div class="muted">Nenhuma sessão ainda. Inicie o cronômetro para registrar.</div>';
 }
@@ -1300,7 +1302,8 @@ async function cloudSync() {
   try {
     for (let attempt = 0; attempt < 3; attempt++) {
       const g = await cloudGet(cfg);
-      if (g.data && mergeRemote(g.data)) { save(); render(); }
+      const changed = !!(g.data && mergeRemote(g.data)), recovered = recoverSessions();
+      if (changed || recovered) { save(); render(); }
       const mine = payload();
       if (g.data && canon(mine) === canon(g.data)) { syncDirty = false; cloudSet({ err: '', last: Date.now() }); return; }
       const p = await cloudPut(cfg, mine, g.sha);
@@ -1312,7 +1315,7 @@ async function cloudSync() {
 }
 addEventListener('online', () => cloudSoon(600));
 addEventListener('offline', () => paintSync());
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && cloudCfg()) cloudSoon(300); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { if (cloudCfg()) cloudSoon(300); setTimeout(checkUpdate, 1200); } });
 setInterval(() => { if (document.visibilityState === 'visible' && cloudCfg() && !cloudBusy) cloudSync(); }, 30000);
 
 function syncState() {
@@ -1341,7 +1344,7 @@ function syncOpen() {
   hidePop(); if ($('#exp').open) $('#exp').close();
   const c = cloudCfg(), box = $('#syncBox'); syncOffer = null;
   if (c) {
-    box.innerHTML = `<h3>Sincronização</h3><div class="nd-meta" data-live>${esc(syncState()[1])}</div>
+    box.innerHTML = `<h3>Sincronização</h3><div class="nd-meta" data-live>${esc(syncState()[1])}</div><div class="nd-meta" style="margin-top:-10px">Versão ${BUILD} do app</div>
       <p class="sy-p">Este aparelho guarda tudo localmente e envia as alterações para <b>${esc(c.repo)}</b> (arquivo <b>${CLOUD_FILE}</b>). Os outros aparelhos recebem em até 30 segundos, ou na hora em que o app volta para a tela. Sem internet, continue usando: tudo sobe quando a conexão voltar.</p>
       <div class="acts"><button class="btn ghost danger-ghost" data-act="sync-off">Desativar</button><span class="grow"></span><button class="btn ghost" data-act="sync-close">Fechar</button><button class="btn primary" data-act="sync-now">Sincronizar agora</button></div>`;
   } else {
@@ -1386,8 +1389,40 @@ async function syncAdopt(replace) {
     S.projects = []; S.templates = []; S.events = []; S.running = null; S.sync = { mt: {}, del: {}, evClr: 0 }; S.focus = {}; S.active = null; S.view = 'overview';
     sigs = sigMap(S);
   }
-  mergeRemote(data); cloudSaveCfg(cfg); closeSync(); save(); render(); animateMain();
+  mergeRemote(data); recoverSessions(); cloudSaveCfg(cfg); closeSync(); save(); render(); animateMain();
   await cloudSync(); const c = cloudCfg(); toast(c && c.err ? c.err : 'Aparelho sincronizado');
+}
+
+/* ---------- versão e recuperação ---------- */
+const BUILD = 4;
+// Busca a versão publicada e recarrega quando há uma mais nova (os dados ficam salvos; o cronômetro continua rodando).
+async function checkUpdate() {
+  if (!/^https?:$/.test(location.protocol) || navigator.onLine === false) return;
+  try {
+    const t = await (await fetch('./?u=' + Date.now(), { cache: 'no-store' })).text();
+    const m = /const BUILD = (\d+);/.exec(t);
+    if (m && +m[1] > BUILD && !holdSync() && !$('#syncDlg').classList.contains('show') && !$('#exp').open) { save(); location.reload(); }
+  } catch (e) {}
+}
+// Toda pausa fica no histórico com início e fim. Se uma sessão pausada não estiver na tarefa, ela volta como "recuperada".
+// Sessões apagadas ou editadas pelo usuário, e as que se sobrepõem a uma sessão existente, não são recriadas.
+function recoverSessions() {
+  const pd = s => { const m = /(\d{4})-(\d\d)-(\d\d) (\d\d):(\d\d):(\d\d)/.exec(s || ''); return m ? new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime() : NaN; };
+  const sec = ms => Math.floor(ms / 1000), handled = new Set();
+  S.events.forEach(e => { if ((e.a === 'tempo_apagado' || e.a === 'tempo_editado' || e.a === 'tempo_recuperado') && e.d) { const m = /(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)/.exec(e.d); if (m) handled.add(sec(pd(m[1]))); } });
+  let n = 0;
+  S.events.slice().forEach(e => {
+    if (e.a !== 'cronometro_pausado' || !e.tid) return;
+    let st = e.s, en = e.e;
+    if (!st || !en) { const m = /sessão (\S+ \S+) → (\S+ \S+)/.exec(e.d || ''); if (!m) return; st = pd(m[1]); en = pd(m[2]); }
+    if (!(en > st) || handled.has(sec(st))) return;
+    const f = findGlobal(e.tid); if (!f) return;
+    if (f.t.logs.some(l => l.start < en && l.end > st)) return;
+    if (S.running && S.running.tid === e.tid && sec(S.running.start) === sec(st)) return;
+    f.t.logs.push({ start: st, end: en, recovered: true }); handled.add(sec(st)); n++;
+    ev('tempo_recuperado', { t: f.t, d: sessTxt(st, en) });
+  });
+  return n;
 }
 
 /* ---------- navegação ---------- */
@@ -1638,7 +1673,11 @@ document.addEventListener('dragend', () => { dragId = null; clearDrop(); documen
 
 window.addEventListener('beforeunload', save);
 commit();
+if (recoverSessions()) commit();
 if (cloudCfg()) cloudSoon(400);
+setTimeout(checkUpdate, 4000);
+setInterval(checkUpdate, 5 * 60000);
+addEventListener('online', () => setTimeout(checkUpdate, 1500));
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
 </script>
