@@ -608,7 +608,7 @@ const projTime = p => p.tasks.reduce((a, t) => a + totalTime(t), 0) + subsOf(p.i
 let pendingNote = null, noteCur = null;
 function stopTimer(ask) {
   if (!S.running) return;
-  const e = idx.get(S.running.tid) || findGlobal(S.running.tid), end = Date.now(), note = (S.running.note || '').trim();
+  const e = findGlobal(S.running.tid), end = Date.now(), note = (S.running.note || '').trim();
   if (e && end - S.running.start >= 1000) {
     const l = { start: S.running.start, end }; if (note) l.note = note;
     e.t.logs.push(l); ev('cronometro_pausado', { t: e.t, d: 'sessão ' + sessTxt(S.running.start, end) + (note ? ` — nota: ${note}` : '') });
@@ -617,7 +617,7 @@ function stopTimer(ask) {
   S.running = null;
 }
 function openNote(tid, start) {
-  const e = idx.get(tid); if (!e) return; const l = e.t.logs.find(x => x.start === start); if (!l) return;
+  const e = findGlobal(tid); if (!e) return; const l = e.t.logs.find(x => x.start === start); if (!l) return;
   noteCur = { tid, start };
   $('#noteDlg .nd-meta').textContent = `${e.t.title || 'Sem título'} · ${fdt(l.start)} → ${sameDay(l.start, l.end) ? ftime(l.end) : fdt(l.end)} (${fmt(l.end - l.start)})`;
   $('#ndText').value = l.note || ''; $('#noteDlg').classList.add('show');
@@ -1198,6 +1198,7 @@ function payload() {
 function mergeRemote(R) {
   if (!R || R.v !== 1) return false;
   const before = canon(payload()), L = flatState(S), Rmt = R.mt || {};
+  const old = { projects: S.projects, templates: S.templates, events: S.events, running: S.running, sync: S.sync, sigs };
   const mt = { ...S.sync.mt }, del = { ...S.sync.del };
   Object.entries(R.del || {}).forEach(([k, v]) => { if ((del[k] || 0) < v) del[k] = v; });
   const out = {};
@@ -1248,7 +1249,11 @@ function mergeRemote(R) {
   S.sync = { mt, del, evClr };
   fixParents();
   sigs = sigMap(S);
-  return canon(payload()) !== before;
+  if (canon(payload()) === before) {   // nada mudou: mantém os objetos atuais (a tela e o índice continuam apontando para eles)
+    S.projects = old.projects; S.templates = old.templates; S.events = old.events; S.running = old.running; S.sync = old.sync; sigs = old.sigs;
+    rebuildIndex(); return false;
+  }
+  rebuildIndex(); return true;
 }
 
 function cloudCfg() { try { return JSON.parse(localStorage.getItem(CLOUD_KEY) || 'null'); } catch (e) { return null; } }
@@ -1425,7 +1430,7 @@ const H = {
   'stop-run': () => { stopTimer(true); commit(); flushNote(); },
   'nd-save': () => {
     if (!noteCur) return closeNote();
-    const e = idx.get(noteCur.tid), l = e && e.t.logs.find(x => x.start === noteCur.start), v = $('#ndText').value.trim();
+    const e = findGlobal(noteCur.tid), l = e && e.t.logs.find(x => x.start === noteCur.start), v = $('#ndText').value.trim();
     if (l && v !== (l.note || '')) { if (v) l.note = v; else delete l.note; ev('nota_sessao', { t: e.t, d: `${sessTxt(l.start, l.end)} — ${v || '(nota removida)'}` }); }
     closeNote(); commit(); if (v) toast('Nota salva');
   },
