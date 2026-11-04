@@ -17,6 +17,10 @@ Ligações entre os módulos:
 - O botão ▶ de um item de hoje na Semana inicia no Tempo a atividade com o mesmo nome (cria uma se não existir).
 - A Cópia no GitHub ativada nos Ajustes vale para os dois módulos.
 
+## Ramo (pasta `ramo/`)
+
+App separado do Ponteiro: https://obardomoderno.github.io/ponteiro/ramo/. Projetos (com subprojetos), tarefas dentro de tarefas sem limite, cronômetro com nota por sessão, modelos e relatório em TXT. É um `index.html` só, com `sw.js` próprio (cache `ramo-*`). Não conversa com o Tempo nem com a Semana; só aproveita a chave do GitHub que eles guardam no `localStorage` (mesma origem).
+
 ## Onde estão os dados
 
 Os apps não guardam dados aqui. Quando a "Cópia no GitHub" está ativada, cada app envia o próprio estado para o repositório **privado** `obardomoderno/meus-dados`:
@@ -24,6 +28,7 @@ Os apps não guardam dados aqui. Quando a "Cópia no GitHub" está ativada, cada
 - `ponteiro.json`
 - `diario.json`
 - `semana.json`
+- `ramo.json` (Ramo)
 
 Quando o dono mandar os links dos apps e perguntar o que fez, o que está fazendo ou como está a vida dele:
 
@@ -60,6 +65,17 @@ Os arquivos seguem `{ "app": "...", "updatedAt": "<ISO>", "data": { ... } }`. Ho
 - `settings`: `{ weekStart (1 = segunda, 0 = domingo), fit ("prop" | "last"), mt }`.
 - `hab`: `{ list, mt }`. Cada hábito é `{ id, name, days, created }`: `days` são os dias da semana em que ele roda (0 = domingo … 6 = sábado) e `created` é a data `"AAAA-MM-DD"` a partir da qual ele conta.
 - `jr`: diário, um objeto por data `"AAAA-MM-DD": { entries, mt }`. Cada registro é `{ id, at ("HH:MM"), text, habits }`, e `habits` são os ids dos hábitos marcados como feitos nele. Um hábito está feito no dia se aparece em qualquer registro daquela data.
+
+### ramo.json → `data`
+
+Tudo em mapas planos por id; a árvore é remontada por `pid`, `par` e `o`.
+
+- `P`: projetos `{ id, name, created, parentId (projeto pai ou null), o (ordem) }`.
+- `T`: tarefas `{ id, title, done, created, completedAt, desc, logs, comments, pid (projeto), par (tarefa mãe ou null), o (ordem entre irmãs) }`. `logs` são as sessões de trabalho `{ start, end, note?, manual?, edited? }`; `note` é o que o dono anotou ter feito naquela sessão. Uma tarefa com subtarefas tem progresso = média das subtarefas; sem subtarefas, 0 ou 100%. O progresso de um projeto é a média das tarefas principais e dos subprojetos.
+- `M`: modelos `{ id, name, body, created, o }`. `body` tem uma tarefa por linha, com dois espaços por nível.
+- `run`: cronômetro ligado `{ tid (tarefa), start, note }` ou `null`.
+- `ev`: histórico de ações `{ ts, a (código, ex.: tarefa_concluida, cronometro_pausado, nota_sessao), pn (caminho do projeto), tn (caminho da tarefa), tid, pid, d (detalhes) }`.
+- `mt`, `del`, `evClr`: controle da sincronização (hora da última alteração por item, lápides, limpeza do histórico). Ignore.
 
 ## Como ajudar
 

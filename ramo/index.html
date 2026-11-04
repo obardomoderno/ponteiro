@@ -1,0 +1,1641 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FDFBF8">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Ramo">
+<title>Ramo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FDFBF8; --side:#F8F4EE; --card:#FFFFFF; --wash:#F6F0E7; --sand:#ECE3D5; --hover:#FAF6F0;
+  --ink:#2A2520; --ink2:#5A5249; --muted:#948A7E; --faint:#C6BDB1;
+  --line:#EDE7DE; --line2:#F4EFE8;
+  --accent:#B9935F; --accent-ink:#86663C; --accent-soft:#F6EEE2;
+  --ok:#7C9A75; --ok-ink:#536F4E; --ok-soft:#EEF3EB; --danger:#C46A55; --danger-soft:#FBEEEA;
+  --r:18px; --r-sm:12px;
+  --sh:0 1px 2px rgba(42,37,32,.04),0 10px 28px -18px rgba(42,37,32,.16);
+  --sh-lg:0 2px 6px rgba(42,37,32,.05),0 28px 64px -20px rgba(42,37,32,.28);
+  --font:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --tab-h:62px; --safe:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:14.5px/1.5 var(--font);-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit}
+svg{display:block}
+.app{display:grid;grid-template-columns:252px 1fr;min-height:100vh}
+
+/* ---------- barra lateral (computador) ---------- */
+.side{background:var(--side);border-right:1px solid var(--line);padding:22px 14px 18px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px 22px;font-weight:700;font-size:17px;letter-spacing:-.02em}
+.logo{width:30px;height:30px;border-radius:10px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;color:var(--accent);box-shadow:var(--sh)}
+.logo svg{width:16px;height:16px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--r-sm);cursor:pointer;color:var(--ink2);font-size:13.5px;font-weight:500;user-select:none;min-height:36px;border:1px solid transparent}
+.nav-item:hover{background:var(--hover)}
+.nav-item.active{background:var(--card);color:var(--ink);font-weight:600;border-color:var(--line);box-shadow:var(--sh)}
+.nav-item.drop{border-color:var(--accent);background:var(--accent-soft)}
+.nav-item > svg{width:17px;height:17px;color:var(--muted);flex:none}
+.nav-item.active > svg{color:var(--accent-ink)}
+.nav-item .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-item .pc,.nav-item .cnt{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:500}
+.sec-label{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:24px 6px 8px 12px}
+.ptree{display:flex;flex-direction:column;gap:2px}
+.side .foot{margin-top:auto;padding:16px 12px 0;font-size:11.5px;color:var(--faint)}
+.runpill{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);box-shadow:var(--sh);border-radius:14px;padding:9px 8px 9px 14px;margin-top:16px}
+.runpill .rt{flex:1;min-width:0;cursor:pointer}
+.runpill .rn{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.runpill .rv{font-size:12px;color:var(--ok-ink);font-variant-numeric:tabular-nums;font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px var(--ok-soft);animation:pulse 1.6s infinite;flex:none}
+@keyframes pulse{50%{opacity:.35}}
+
+/* ---------- conteúdo ---------- */
+main{padding:34px clamp(18px,5vw,56px) 96px;width:100%;max-width:900px;justify-self:center}
+.crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:2px;font-size:13px;color:var(--muted);margin-bottom:14px}
+.crumbs a{cursor:pointer;color:var(--ink2);padding:4px 8px;border-radius:8px;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.crumbs a:hover{background:var(--wash);color:var(--ink)}
+.crumbs .cur{color:var(--ink);font-weight:600;padding:4px 8px;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crumbs .sep{color:var(--faint)}
+.back{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;min-width:30px;padding:0;margin-right:6px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink2);cursor:pointer;box-shadow:var(--sh)}
+.back:hover{color:var(--ink);border-color:var(--sand)}
+.back svg{width:15px;height:15px;flex:none}
+.back .bl{display:none;max-width:60vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.hero{display:flex;align-items:center;gap:18px;margin:4px 0 26px}
+.hero-main{flex:1;min-width:0}
+.ring{position:relative;width:68px;height:68px;flex:none}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .trk{fill:none;stroke:var(--sand);stroke-width:5}
+.ring .val{fill:none;stroke:var(--accent);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .6s cubic-bezier(.2,.7,.2,1)}
+.ring .val.ok{stroke:var(--ok)}
+.ring span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.ring span small{font-size:10px;font-weight:600;color:var(--muted);margin:2px 0 0 1px}
+.h1{font-weight:700;font-size:28px;letter-spacing:-.03em;line-height:1.15;margin:0;word-break:break-word;outline:none;border-radius:8px}
+.h1[contenteditable="true"]{background:var(--card);box-shadow:0 0 0 1px var(--line),0 0 0 4px var(--accent-soft);padding:0 8px;margin-left:-8px}
+.meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px;margin-top:6px;color:var(--muted);font-size:13px}
+.meta > span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.meta b{color:var(--ink2);font-weight:600;font-variant-numeric:tabular-nums}
+.meta svg{width:14px;height:14px}
+.pill{font-size:12px;font-weight:600;padding:2px 10px;border-radius:999px;background:var(--wash);color:var(--ink2)}
+.pill.ok{background:var(--ok-soft);color:var(--ok-ink)}
+.page-head{display:flex;align-items:center;gap:12px;margin:4px 0 4px}
+.page-head .h1{flex:1}
+.sub{color:var(--muted);margin:0 0 22px;font-size:13.5px}
+
+.sec-title{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:28px 0 12px;min-height:22px}
+.sec-title .n{font-size:11.5px;letter-spacing:0;color:var(--ink2);background:var(--wash);border-radius:999px;padding:0 8px;font-variant-numeric:tabular-nums}
+.sec-title .btn{text-transform:none;letter-spacing:0}
+.hero + .sec-title,.hero + .toolbar{margin-top:0}
+
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px}
+.grow{flex:1}
+.btn{height:36px;border:1px solid var(--line);background:var(--card);color:var(--ink2);padding:0 15px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;transition:background .15s,border-color .15s,color .15s,box-shadow .15s;flex:none}
+.btn:hover{border-color:var(--sand);color:var(--ink)}
+.btn svg{width:15px;height:15px;flex:none}
+.btn.sm{height:30px;padding:0 12px;font-size:12.5px}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.primary:hover{background:#3D3630;color:#fff}
+.btn.soft{background:var(--wash);border-color:transparent;color:var(--accent-ink)}
+.btn.soft:hover{background:var(--sand);color:var(--ink)}
+.btn.icon{width:36px;padding:0;justify-content:center}
+.btn.ghost{background:none;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{background:var(--wash);color:var(--ink)}
+.btn.on{background:var(--ok-soft);border-color:#D6E3D1;color:var(--ok-ink)}
+.btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+.btn.danger:hover{background:#AD5944;color:#fff}
+.btn.danger-ghost{color:var(--danger)}
+.btn.danger-ghost:hover{background:var(--danger-soft);color:var(--danger)}
+
+/* ---------- lista de tarefas ---------- */
+.list{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:6px;box-shadow:var(--sh)}
+.children{margin-left:22px;padding-left:10px;border-left:1.5px solid var(--line2)}
+.row{display:flex;align-items:center;gap:6px;padding:4px 6px 4px 8px;border-radius:var(--r-sm);min-height:44px;cursor:pointer;transition:background .12s}
+.row:hover{background:var(--hover)}
+.row.running{background:var(--ok-soft)}
+.row.flash{animation:flash 1.4s ease}
+@keyframes flash{0%,30%{background:var(--accent-soft)}100%{background:transparent}}
+.row.dragging{opacity:.35}
+.row.drop-before{box-shadow:inset 0 2px 0 var(--accent)}
+.row.drop-after{box-shadow:inset 0 -2px 0 var(--accent)}
+.row.drop-inside{background:var(--accent-soft);box-shadow:inset 0 0 0 1.5px var(--accent)}
+.handle{width:14px;height:22px;color:var(--faint);cursor:grab;display:none;align-items:center;flex:none}
+.handle svg{width:14px;height:14px;fill:currentColor}
+.rbtns{display:none;gap:4px;flex:none}
+.rb{width:30px;height:30px;border:1px solid var(--line);background:var(--card);border-radius:9px;display:grid;place-items:center;color:var(--ink2);cursor:pointer;padding:0}
+.rb:hover{border-color:var(--accent);color:var(--accent-ink)}
+.rb svg{width:14px;height:14px}
+body.reorder .handle,body.reorder .rbtns{display:flex}
+body.reorder .row{cursor:grab}
+body.reorder .row:hover{background:var(--hover);box-shadow:inset 0 0 0 1px var(--line)}
+body.reorder .row .ib{display:none}
+body.reorder .addline,body.reorder .fab{display:none}
+.caret{width:22px;height:22px;border:0;background:none;color:var(--faint);cursor:pointer;padding:0;flex:none;display:grid;place-items:center;border-radius:7px}
+.caret:hover{background:var(--wash);color:var(--ink2)}
+.caret svg{width:14px;height:14px;transition:transform .18s}
+.caret.open svg{transform:rotate(90deg)}
+.caret.leaf{visibility:hidden}
+.check{width:21px;height:21px;border:1.8px solid #D8CDBE;border-radius:50%;background:var(--card);display:grid;place-items:center;cursor:pointer;padding:0;color:transparent;flex:none;transition:all .15s}
+.check svg{width:11px;height:11px}
+.check:hover{border-color:var(--accent)}
+.check.partial{border-color:var(--accent);background:conic-gradient(var(--accent) calc(var(--p) * 1%), var(--card) 0)}
+.check.done{background:var(--ok);border-color:var(--ok);color:#fff}
+.title{flex:0 1 auto;min-width:60px;margin-right:auto;outline:none;padding:3px 6px;border-radius:7px;word-break:break-word;font-weight:500}
+.title[contenteditable="true"]{cursor:text;background:var(--card);box-shadow:0 0 0 1px var(--line),0 0 0 4px var(--accent-soft)}
+.title:empty:before{content:'Sem título';color:var(--faint)}
+.done-row > .title{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--faint)}
+.chip{font-size:11.5px;font-weight:600;color:var(--accent-ink);font-variant-numeric:tabular-nums;background:var(--accent-soft);padding:1px 9px;border-radius:999px;flex:none}
+.chip.ok{color:var(--ok-ink);background:var(--ok-soft)}
+.time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:56px;text-align:right;flex:none}
+.running .time{color:var(--ok-ink);font-weight:600}
+.ib{width:30px;height:30px;border:0;background:none;border-radius:9px;color:var(--muted);cursor:pointer;display:grid;place-items:center;padding:0;position:relative;flex:none}
+.ib:hover{background:var(--wash);color:var(--ink)}
+.ib svg{width:16px;height:16px}
+.ib.sm{width:24px;height:24px}
+.ib.sm svg{width:14px;height:14px}
+.ib.on{color:var(--ok-ink)}
+.hov{opacity:0;transition:opacity .12s}
+.row:hover .hov,.row:focus-within .hov,.hov.show{opacity:1}
+.ib.open{color:var(--faint)}
+.row:hover .ib.open{color:var(--accent-ink)}
+.badge{position:absolute;top:1px;right:0;font-size:9px;background:var(--accent);color:#fff;border-radius:10px;padding:0 4px;line-height:13px;font-weight:700}
+.addline{display:flex;align-items:center;gap:8px;color:var(--muted);padding:10px 12px;border-radius:var(--r-sm);cursor:pointer;font-weight:500}
+.addline:hover{color:var(--ink);background:var(--hover)}
+.addline.drop-inside{background:var(--accent-soft);box-shadow:inset 0 0 0 1.5px var(--accent)}
+.addline svg{width:15px;height:15px}
+.empty{color:var(--muted);text-align:center;padding:30px 10px;font-size:13.5px}
+.empty-card{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;background:var(--card);border:1px dashed var(--sand);border-radius:var(--r);padding:36px 20px;color:var(--muted)}
+.empty-card > svg{width:26px;height:26px;color:var(--accent);margin-bottom:4px}
+.empty-card b{color:var(--ink);font-size:15px}
+.empty-card .btn{margin-top:10px}
+.exportbar{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+
+/* ---------- projetos ---------- */
+.plist{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+.prow{display:flex;align-items:center;gap:14px;padding:14px 18px 14px calc(18px + var(--d,0) * 22px);cursor:pointer;transition:background .12s}
+.prow + .prow{border-top:1px solid var(--line2)}
+.prow:hover{background:var(--hover)}
+.prow .pm{flex:1;min-width:0}
+.prow .pn{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .ps{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.prow .pp{font-weight:700;font-variant-numeric:tabular-nums;font-size:15px;letter-spacing:-.02em}
+.prow .go{color:var(--faint);width:16px;height:16px}
+.sub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.sub-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:var(--sh);cursor:pointer;transition:transform .15s,box-shadow .15s;min-width:0}
+.sub-card:hover{transform:translateY(-1px);box-shadow:var(--sh-lg)}
+.sub-card .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.sub-card .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub-card .pc{font-weight:700;font-variant-numeric:tabular-nums}
+.sub-card .mt{font-size:12px;color:var(--muted);margin-top:2px}
+.sub-card.new{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted);border-style:dashed;border-color:var(--sand);box-shadow:none;background:transparent;min-height:82px;font-weight:600}
+.sub-card.new:hover{color:var(--ink);background:var(--card)}
+.sub-card.new svg{width:15px;height:15px}
+.bar{height:5px;background:var(--line2);border-radius:5px;overflow:hidden;margin-top:10px}
+.bar b{display:block;height:100%;background:linear-gradient(90deg,#DCC6A4,var(--accent));border-radius:5px;transition:width .5s}
+
+/* ---------- comentários e tempo ---------- */
+.tdata{display:grid;grid-template-columns:1fr;gap:14px;margin-top:22px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:18px 20px;min-width:0}
+.panel .sec-title{margin:0 0 10px}
+.cm{padding:10px 0;border-bottom:1px solid var(--line2);display:flex;gap:8px}
+.cm .b{flex:1;white-space:pre-wrap;word-break:break-word}
+.cm .d{font-size:11.5px;color:var(--muted);display:block;margin-bottom:2px;font-variant-numeric:tabular-nums}
+textarea,input[type=number],input[type=text],input[type=password],input[type=datetime-local]{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:var(--r-sm);padding:10px 12px;color:var(--ink);resize:vertical;outline:none;transition:border-color .15s,box-shadow .15s,background .15s}
+textarea:focus,input:focus{border-color:#DCC6A4;background:#fff;box-shadow:0 0 0 4px var(--accent-soft)}
+.rowf{display:flex;gap:8px;margin-top:8px;align-items:center}
+.rowf input{width:96px;height:36px;padding:0 12px}
+.lg{padding:11px 0;border-bottom:1px solid var(--line2);font-size:13px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.lg:last-child{border-bottom:0}
+.lg-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.lg-note{margin-top:6px;padding:9px 12px;background:var(--bg);border:1px solid var(--line2);border-radius:10px;color:var(--ink);font-size:13.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;font-variant-numeric:normal;cursor:pointer}
+.lg-note:hover{border-color:var(--sand)}
+.lg-addnote{margin-top:4px;border:0;background:none;padding:4px 0;color:var(--accent-ink);font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+.lg-addnote svg{width:13px;height:13px}
+.lg.run{background:var(--ok-soft);border:1px solid #D6E3D1;border-radius:14px;padding:12px;margin-bottom:6px}
+.lg.run textarea{margin-top:8px;background:#fff;border-color:#D6E3D1;font-size:14px}
+.desc{min-height:110px;font-size:14px;line-height:1.6}
+.syncpill{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 12px 5px 10px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;max-width:100%}
+.syncpill .stx{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.syncpill:hover{border-color:var(--sand);color:var(--ink)}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none}
+.syncpill.ok .sdot{background:var(--ok)}
+.syncpill.busy .sdot{background:var(--accent);animation:pulse 1s infinite}
+.syncpill.off .sdot{background:#D9A441}
+.syncpill.err{color:var(--danger);border-color:#F1D3CB}
+.syncpill.err .sdot{background:var(--danger)}
+.hero-sync{margin:-14px 0 22px}
+.sy-l{display:grid;gap:6px;font-size:12px;font-weight:600;color:var(--muted);margin-top:12px}
+.sy-l input{height:42px;font-size:14px}
+.sy-p{font-size:13px;color:var(--ink2);margin:12px 0 0;line-height:1.5}
+.sy-msg:empty{display:none}
+#syncDlg .acts{margin-top:18px;align-items:center}
+.lg .tag{color:var(--muted);font-size:11.5px;background:var(--wash);border-radius:999px;padding:0 7px;margin-left:4px}
+.lg.run{color:var(--ink)}
+.lga{display:flex;gap:2px;align-items:center;flex:none}
+.lga .dur{margin-right:6px;font-weight:600}
+.live{color:var(--ok-ink);font-weight:600}
+.x{border:0;background:none;color:var(--faint);cursor:pointer;width:28px;height:28px;border-radius:8px;flex:none;font-size:17px;line-height:1;display:grid;place-items:center;padding:0}
+.x:hover{background:var(--danger-soft);color:var(--danger)}
+.x.e svg{width:14px;height:14px}
+.x.e:hover{background:var(--wash);color:var(--ink)}
+.lg-edit{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px;background:var(--bg);border:1px solid #DCC6A4;border-radius:14px;margin:8px 0}
+.lg-edit label{font-size:12px;color:var(--muted);font-weight:600;display:grid;gap:4px;min-width:0}
+.lg-edit input{height:38px;padding:0 10px;font-size:13px;font-variant-numeric:tabular-nums;background:#fff}
+.lg-edit .acts{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px}
+.lg-edit .note{grid-column:1/-1;font-size:12px;color:var(--muted)}
+.lg-edit .full{grid-column:1/-1}
+.lg-edit textarea{font-size:13.5px;background:#fff}
+.muted{color:var(--muted);font-size:13px}
+
+/* ---------- modelos ---------- */
+.tpl-layout{display:grid;grid-template-columns:240px 1fr;gap:14px;align-items:start}
+.tpl-list{padding:8px}
+.tpl-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--r-sm);cursor:pointer}
+.tpl-item:hover{background:var(--hover)}
+.tpl-item.active{background:var(--accent-soft)}
+.tpl-item .ic{width:32px;height:32px;border-radius:10px;background:var(--bg);border:1px solid var(--line);display:grid;place-items:center;color:var(--accent-ink);flex:none}
+.tpl-item.active .ic{background:#fff}
+.tpl-item .ic svg{width:15px;height:15px}
+.tpl-item .tn{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tpl-item .tc{font-size:12px;color:var(--muted)}
+.tpl-item > div{min-width:0}
+input.tpl-name{border:0;background:none;box-shadow:none;padding:0;font-weight:700;font-size:21px;letter-spacing:-.02em}
+input.tpl-name:focus{box-shadow:none;background:none}
+.tpl-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.tpl-body{min-height:300px;font:13.5px/1.75 ui-monospace,'SF Mono',Menlo,Consolas,monospace;tab-size:2}
+.tpl-prev{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px;min-height:300px;font-size:13.5px}
+.tpl-prev ul{list-style:none;margin:0 0 0 6px;padding-left:16px;border-left:1.5px solid var(--line)}
+.tpl-prev > ul{padding-left:0;border:0;margin:0}
+.tpl-prev li{padding:3px 0}
+.tpl-prev li > span{display:inline-flex;align-items:center;gap:8px}
+.tpl-prev li > span:before{content:'';width:12px;height:12px;border-radius:50%;border:1.5px solid #D8CDBE;flex:none}
+.tpl-prev .root > span{font-weight:700}
+.lbl{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:30px}
+.tpl-tools{display:flex;gap:4px}
+.tpl-tools .rb{width:30px;height:28px}
+
+/* ---------- menus, janelas, avisos ---------- */
+#pop{position:fixed;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh-lg);padding:6px;z-index:60;min-width:220px;max-width:300px;display:none}
+#pop.show{display:block;animation:pin .14s ease}
+@keyframes pin{from{opacity:0;transform:translateY(-4px)}}
+#pop button{display:flex;width:100%;gap:10px;align-items:center;border:0;background:none;text-align:left;padding:9px 10px;border-radius:9px;cursor:pointer;color:var(--ink2);font-size:13.5px;font-weight:500}
+#pop button:hover{background:var(--hover);color:var(--ink)}
+#pop button.cur{background:var(--accent-soft);color:var(--ink)}
+#pop button span:not(.c){flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pop button.danger{color:var(--danger)}
+#pop button.danger:hover{background:var(--danger-soft)}
+#pop button svg{width:16px;height:16px;color:var(--muted);flex:none}
+#pop button.danger svg{color:var(--danger)}
+#pop button .c{margin-left:auto;font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums}
+#pop hr{border:0;border-top:1px solid var(--line2);margin:4px 2px}
+#pop .pl{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:8px 10px 4px}
+#pop .pe{padding:6px 10px 8px;color:var(--muted);font-size:13px}
+.scrim{position:fixed;inset:0;background:rgba(42,37,32,.22);opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
+.scrim.show{opacity:1;pointer-events:auto}
+dialog{border:1px solid var(--line);border-radius:22px;padding:26px;background:var(--card);color:var(--ink);width:min(520px,calc(100vw - 32px));box-shadow:var(--sh-lg)}
+dialog::backdrop{background:rgba(42,37,32,.25);backdrop-filter:blur(3px)}
+dialog h2{font-weight:700;font-size:21px;letter-spacing:-.02em;margin:0 0 2px}
+.opts{display:grid;gap:8px;margin:16px 0}
+.opt{display:flex;gap:14px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:13px 14px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.opt:hover{border-color:#DCC6A4;box-shadow:0 0 0 4px var(--accent-soft)}
+.opt b{font-weight:700;display:block}
+.opt small{color:var(--muted)}
+.opt .ic{width:42px;height:42px;border-radius:12px;background:var(--accent-soft);display:grid;place-items:center;color:var(--accent-ink);font-size:11px;font-weight:800;flex:none}
+.radios{display:flex;gap:4px;margin-top:14px;background:var(--wash);border-radius:999px;padding:4px}
+.radios label{flex:1;border-radius:999px;padding:7px 12px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:600}
+.radios label:has(input:checked){background:var(--card);color:var(--ink);box-shadow:var(--sh)}
+.radios input{display:none}
+.radios label.dis{opacity:.4;cursor:default}
+.dlg-foot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.dlg-foot > div{display:flex;gap:8px;flex-wrap:wrap}
+#syncDlg,#noteDlg,#cfm{position:fixed;inset:0;background:rgba(42,37,32,.25);backdrop-filter:blur(3px);display:none;place-items:center;z-index:90;padding:16px}
+#syncDlg.show,#noteDlg.show,#cfm.show{display:grid}
+#syncDlg .box,#noteDlg .box{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px 22px 18px;width:min(460px,100%);box-shadow:var(--sh-lg);animation:pin .16s ease}
+#syncDlg h3,#noteDlg h3{margin:0;font-size:18px;font-weight:700;letter-spacing:-.02em}
+#syncDlg .nd-meta,#noteDlg .nd-meta{margin:4px 0 14px;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+#noteDlg textarea{font-size:14.5px;line-height:1.55}
+#syncDlg .acts,#noteDlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+#cfm .box{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px 22px 18px;width:min(400px,100%);box-shadow:var(--sh-lg);animation:pin .16s ease}
+#cfm p{margin:0 0 18px;font-size:14.5px}
+#cfm .acts{display:flex;justify-content:flex-end;gap:8px}
+#toast{position:fixed;bottom:24px;left:50%;transform:translate(-50%,16px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;pointer-events:none;z-index:95;box-shadow:var(--sh-lg);white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+.zoom-anim{animation:zin .24s ease}
+@keyframes zin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.tabbar,#fab,#runbar,.show-m{display:none}
+
+@media (hover:none){.hov{opacity:1}}
+
+/* ---------- celular ---------- */
+@media (max-width:820px){
+  .app{display:block}
+  .side{display:none}
+  main{padding:18px 16px calc(var(--tab-h) + 96px + var(--safe));max-width:none}
+  body.has-run main{padding-bottom:calc(var(--tab-h) + 150px + var(--safe))}
+  .hide-m{display:none !important}
+
+  .crumbs{margin-bottom:12px}
+  .crumbs a,.crumbs .sep,.crumbs .cur{display:none}
+  .back{padding:0 14px 0 10px;height:36px;font-size:14px;font-weight:600;margin:0}
+  .back .bl{display:inline}
+
+  .hero{gap:14px;margin-bottom:20px;align-items:flex-start}
+  .ring{width:56px;height:56px}
+  .ring span{font-size:14px}
+  .h1{font-size:23px}
+  .meta{font-size:12.5px;gap:2px 12px}
+
+  .toolbar{flex-wrap:nowrap;overflow-x:auto;margin:0 -16px 12px;padding:2px 16px;scrollbar-width:none}
+  .toolbar::-webkit-scrollbar{display:none}
+  .toolbar .grow{display:none}
+  .btn{height:38px}
+
+  .list{padding:4px;border-radius:16px}
+  .row{min-height:50px;padding:4px 2px 4px 4px;gap:4px}
+  .children{margin-left:12px;padding-left:6px}
+  .check{width:23px;height:23px}
+  .title{font-size:15px}
+  .time{min-width:0;font-size:11.5px}
+  .time:empty{display:none}
+  .row .ib.hov{display:none}
+  .row .ib[data-act=more]{display:grid;opacity:1}
+  .show-m{display:inline}
+  .rb{width:32px;height:32px}
+  .rbtns{gap:3px}
+  body.reorder .handle,body.reorder .chip,body.reorder .time{display:none}
+
+  .prow{padding:14px 14px 14px calc(14px + var(--d,0) * 16px);gap:12px}
+  .sub-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .tdata,.tpl-layout,.tpl-cols{grid-template-columns:1fr}
+  .panel{padding:16px}
+  .tpl-list{display:flex;overflow-x:auto;gap:6px;padding:6px}
+  .tpl-item{flex:none;min-width:170px}
+  .tpl-body,.tpl-prev{min-height:200px}
+  textarea,input[type=number],input[type=text],input[type=password],input[type=datetime-local]{font-size:16px}
+  input.tpl-name{font-size:20px}
+  .exportbar .btn[data-act=export]{display:none}
+  .exportbar:not(:has(.btn[data-act=wipe])){display:none}
+  .exportbar{justify-content:center}
+
+  .tabbar{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(255,255,255,.92);backdrop-filter:saturate(1.4) blur(16px);-webkit-backdrop-filter:saturate(1.4) blur(16px);border-top:1px solid var(--line);padding:6px 8px calc(6px + var(--safe))}
+  .tab{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0 4px;color:var(--muted);font-size:11px;font-weight:600;border-radius:12px;cursor:pointer}
+  .tab svg{width:22px;height:22px}
+  .tab.on{color:var(--accent-ink)}
+  .tab.on svg{stroke-width:1.9}
+  #fab,#runbar{display:block}
+  .fab{position:fixed;right:16px;bottom:calc(var(--tab-h) + 14px + var(--safe));width:56px;height:56px;border-radius:20px;background:var(--ink);color:#fff;border:0;box-shadow:0 12px 26px -10px rgba(42,37,32,.55);display:grid;place-items:center;z-index:41;cursor:pointer}
+  .fab svg{width:22px;height:22px}
+  #runbar .runpill{position:fixed;left:12px;right:84px;bottom:calc(var(--tab-h) + 17px + var(--safe));z-index:41;margin:0;padding:8px 6px 8px 14px}
+
+  #pop.sheet{left:0 !important;right:0;top:auto !important;bottom:0;min-width:0;max-width:none;border-radius:22px 22px 0 0;padding:4px 10px calc(12px + var(--safe));max-height:78vh;overflow:auto;animation:sheet .22s ease;border-bottom:0}
+  #pop.sheet:before{content:'';display:block;width:38px;height:4px;border-radius:4px;background:var(--sand);margin:8px auto 10px}
+  #pop.sheet button{padding:13px 12px;font-size:15px}
+  @keyframes sheet{from{transform:translateY(40px);opacity:0}}
+  dialog{margin:auto 0 0;width:100%;max-width:100%;border-radius:22px 22px 0 0;padding:22px 18px calc(18px + var(--safe));border-bottom:0}
+  #syncDlg,#noteDlg,#cfm{place-items:end stretch;padding:0}
+  #syncDlg .box,#noteDlg .box{width:100%;border-radius:22px 22px 0 0;padding:22px 18px calc(18px + var(--safe))}
+  #noteDlg .acts .btn,#syncDlg .acts .btn{flex:1;justify-content:center;height:44px}
+  #syncDlg .acts{flex-wrap:wrap}
+  #syncDlg .acts .grow{display:none}
+  #cfm .box{width:100%;border-radius:22px 22px 0 0;padding:22px 18px calc(18px + var(--safe))}
+  #cfm .acts .btn{flex:1;justify-content:center;height:44px}
+  #toast{bottom:calc(var(--tab-h) + 84px + var(--safe))}
+}
+@media print{body{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side" id="side"></aside>
+  <main id="main"></main>
+</div>
+<nav class="tabbar" id="tabbar"></nav>
+<div id="fab"></div>
+<div id="runbar"></div>
+<div class="scrim" id="scrim"></div>
+<div id="pop"></div>
+<div id="toast"></div>
+<div id="cfm" data-act="cfm-no"><div class="box" data-act="noop"><p id="cfmMsg"></p><div class="acts"><button class="btn" data-act="cfm-no">Cancelar</button><button class="btn danger" id="cfmOk" data-act="cfm-ok">Excluir</button></div></div></div>
+<div id="noteDlg"><div class="box"><h3>O que foi feito nesta sessão?</h3><div class="nd-meta"></div><textarea id="ndText" rows="4" placeholder="Ex.: revisei o roteiro e ajustei a introdução…"></textarea><div class="acts"><button class="btn ghost" data-act="nd-skip">Agora não</button><button class="btn primary" data-act="nd-save">Salvar nota</button></div></div></div>
+<div id="syncDlg" data-act="sync-close"><div class="box" id="syncBox" data-act="noop"></div></div>
+<input type="file" id="importFile" accept=".json,application/json" hidden>
+
+<dialog id="exp">
+  <h2>Exportar dados</h2>
+  <div class="muted">Escolha o alcance e o formato.</div>
+  <div class="radios">
+    <label id="scopeCurL"><input type="radio" name="scope" value="current" checked> Projeto atual</label>
+    <label><input type="radio" name="scope" value="all"> Todos os projetos</label>
+  </div>
+  <div class="opts">
+    <button class="opt" data-act="ex-txt"><span class="ic">TXT</span><span><b>Relatório completo (.txt)</b><small>Estrutura, tempos, sessões e histórico de todas as ações, com data e hora até os segundos. Pronto para uma IA analisar.</small></span></button>
+    <button class="opt" data-act="ex-json"><span class="ic">JSON</span><span><b>Backup para restaurar</b><small>Só serve para trazer os dados de volta a este app (botão Importar).</small></span></button>
+  </div>
+  <div class="dlg-foot">
+    <div><button class="btn soft" data-act="sync-open">Sincronização</button><button class="btn" data-act="import">Importar backup…</button><button class="btn ghost danger-ghost" data-act="wipe">Apagar todos os dados</button></div>
+    <button class="btn ghost" data-act="ex-close">Fechar</button>
+  </div>
+</dialog>
+
+<script>
+(() => {
+const KEY = 'ramo.v1';
+const sv = (d, extra = '') => `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" ${extra}>${d}</svg>`;
+const I = {
+  grip:'<svg viewBox="0 0 16 16"><circle cx="5.5" cy="3.5" r="1.2"/><circle cx="10.5" cy="3.5" r="1.2"/><circle cx="5.5" cy="8" r="1.2"/><circle cx="10.5" cy="8" r="1.2"/><circle cx="5.5" cy="12.5" r="1.2"/><circle cx="10.5" cy="12.5" r="1.2"/></svg>',
+  caret: sv('<path d="M6 3.5L10.5 8 6 12.5"/>'),
+  check: sv('<path d="M3.5 8.5l3 3 6-7"/>', 'stroke-width="2.2"'),
+  play:'<svg viewBox="0 0 16 16"><path d="M5 3.3v9.4l7.3-4.7z" fill="currentColor"/></svg>',
+  pause:'<svg viewBox="0 0 16 16"><rect x="4" y="3.5" width="2.7" height="9" rx=".8" fill="currentColor"/><rect x="9.3" y="3.5" width="2.7" height="9" rx=".8" fill="currentColor"/></svg>',
+  chat: sv('<path d="M3 3h10a1 1 0 011 1v6.2a1 1 0 01-1 1H7.2L4.3 13.6V11.2H3a1 1 0 01-1-1V4a1 1 0 011-1z"/>', 'stroke-width="1.35"'),
+  plus: sv('<path d="M8 3v10M3 8h10"/>'),
+  more:'<svg viewBox="0 0 16 16"><circle cx="3.5" cy="8" r="1.3" fill="currentColor"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/><circle cx="12.5" cy="8" r="1.3" fill="currentColor"/></svg>',
+  menu: sv('<path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>'),
+  down: sv('<path d="M8 2.5v8M4.5 7.5L8 11l3.5-3.5M3 13.5h10"/>'),
+  enter: sv('<path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5"/>'),
+  back: sv('<path d="M13 8H4M7.5 4.5L4 8l3.5 3.5"/>'),
+  reorder: sv('<path d="M8 2v12M5.5 4.5L8 2l2.5 2.5M5.5 11.5L8 14l2.5-2.5"/>'),
+  expand: sv('<path d="M5 6l3-3 3 3M5 10l3 3 3-3"/>'),
+  collapse: sv('<path d="M5 3l3 3 3-3M5 13l3-3 3 3"/>'),
+  home: sv('<rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1.3"/><rect x="9" y="2.5" width="4.5" height="4.5" rx="1.3"/><rect x="2.5" y="9" width="4.5" height="4.5" rx="1.3"/><rect x="9" y="9" width="4.5" height="4.5" rx="1.3"/>', 'stroke-width="1.35"'),
+  tpl: sv('<path d="M8 2l6 3-6 3-6-3z"/><path d="M2 8l6 3 6-3"/><path d="M2 11l6 3 6-3"/>', 'stroke-width="1.35"'),
+  folder: sv('<path d="M2 4.5a1 1 0 011-1h3l1.5 1.5H13a1 1 0 011 1V12a1 1 0 01-1 1H3a1 1 0 01-1-1z"/><path d="M8 7.5v3.5M6.25 9.25h3.5"/>', 'stroke-width="1.35"'),
+  copy: sv('<rect x="5.5" y="5.5" width="8" height="8" rx="1.6"/><path d="M10.5 5.5V4a1.5 1.5 0 00-1.5-1.5H4A1.5 1.5 0 002.5 4v5A1.5 1.5 0 004 10.5h1.5"/>', 'stroke-width="1.35"'),
+  edit: sv('<path d="M10.5 3l2.5 2.5L6 12.5H3.5V10z"/>', 'stroke-width="1.35"'),
+  trash: sv('<path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.2a1 1 0 001 .8h3.8a1 1 0 001-.8l.6-8.2"/>', 'stroke-width="1.35"'),
+  blank: sv('<rect x="3" y="3" width="10" height="10" rx="2.5"/>', 'stroke-width="1.35"'),
+  leaf: sv('<path d="M3 13C3 7 7 3 13 3c0 6-4 10-10 10z"/><path d="M3 13l5.5-5.5"/>', 'stroke-width="1.6"'),
+  folder0: sv('<path d="M2 4.5a1 1 0 011-1h3l1.5 1.5H13a1 1 0 011 1V12a1 1 0 01-1 1H3a1 1 0 01-1-1z"/>', 'stroke-width="1.4"'),
+  clock: sv('<circle cx="8" cy="8" r="5.75"/><path d="M8 5v3.2l2 1.3"/>', 'stroke-width="1.4"'),
+  up: sv('<path d="M8 13V3M4 7l4-4 4 4"/>'),
+  dn: sv('<path d="M8 3v10M4 9l4 4 4-4"/>')
+};
+
+/* ---------- utilidades ---------- */
+const $ = s => document.querySelector(s);
+const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2, '0');
+const fmt = ms => { const s = Math.floor(ms / 1000); return `${Math.floor(s/3600)}:${pad(Math.floor(s%3600/60))}:${pad(s%60)}`; };
+const fmtShort = ms => { const m = Math.round(ms/60000); if (m < 60) return m + ' min'; return Math.floor(m/60) + 'h' + (m%60 ? pad(m%60) : ''); };
+const fdt = ts => { if (!ts) return ''; const d = new Date(ts); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
+const ftime = ts => { const d = new Date(ts); return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
+const fdate = ts => ts ? new Date(ts).toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '';
+const toInput = ts => fdt(ts).replace(' ', 'T');
+const fromInput = v => v ? new Date(v.length === 16 ? v + ':00' : v).getTime() : NaN;
+const sameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString();
+const fday = ts => ts ? new Date(ts).toLocaleDateString('pt-BR', {day:'2-digit', month:'short', year:'numeric'}) : '';
+const mk = (title, children = []) => ({ id: uid(), title, done: false, created: Date.now(), completedAt: null, children, logs: [], comments: [], desc: '', collapsed: false });
+const pctOf = v => Math.round((v || 0) * 100);
+
+/* ---------- estado ---------- */
+function seed() {
+  const a = mk('Pesquisa', [mk('Levantar referências'), mk('Entrevistar 3 pessoas'), mk('Resumir achados')]);
+  const b = mk('Protótipo', [mk('Esboços no papel'), mk('Versão navegável')]);
+  const c = mk('Apresentação final');
+  a.desc = 'Exemplo de descrição: entender o problema antes de propor soluções.';
+  const p = { id: uid(), name: 'Projeto de exemplo', created: Date.now(), parentId: null, tasks: [a, b, c] };
+  const tpl = { id: uid(), name: 'Publicar conteúdo', created: Date.now(), body: 'Roteiro\n  Pesquisa\n  Rascunho\nGravação\nEdição\n  Corte\n  Legendas\nPublicação' };
+  return { projects: [p], active: p.id, view: 'project', focus: {}, running: null, templates: [tpl] };
+}
+function load() { try { const r = localStorage.getItem(KEY); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
+function save() { track(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+let S = load() || seed();
+S.focus = S.focus || {}; S.templates = S.templates || []; S.events = S.events || []; delete S.mode;
+S.sync = S.sync || { mt: {}, del: {}, evClr: 0 };
+if (!S.view) S.view = S.active ? 'project' : 'overview';
+function fixParents() { const ids = new Set(S.projects.map(p => p.id)); S.projects.forEach(p => { if (!p.parentId || !ids.has(p.parentId) || p.parentId === p.id) p.parentId = null; }); }
+fixParents();
+S.projects.forEach(p => walk(p.tasks, t => { if (t.desc === undefined) t.desc = ''; if (t.comments && t.comments.length) { const old = t.comments.map(c => `[${fdt(c.ts)}] ${c.text}`).join('\n'); t.desc = t.desc ? t.desc + '\n' + old : old; t.comments = []; } }));
+
+let idx = new Map(), dragId = null, editingId = null, reorder = false, cfmFn = null, editLog = null;
+const newIds = new Set();
+
+/* ---------- projetos ---------- */
+const projById = id => S.projects.find(p => p.id === id);
+const proj = () => S.view === 'project' ? projById(S.active) : null;
+const subsOf = id => S.projects.filter(p => (p.parentId || null) === id);
+function projDesc(p) { const out = []; subsOf(p.id).forEach(c => { out.push(c, ...projDesc(c)); }); return out; }
+function projChain(p) { const out = []; let x = p; const seen = new Set(); while (x && x.parentId && !seen.has(x.id)) { seen.add(x.id); x = projById(x.parentId); if (x) out.unshift(x); } return out; }
+const projPath = p => [...projChain(p), p].map(x => x.name || 'Sem nome').join(' › ');
+function projOrder() { const out = []; const rec = (pid, d) => subsOf(pid).forEach(p => { out.push({ p, d }); rec(p.id, d + 1); }); rec(null, 0); return out; }
+
+function walk(tasks, fn, depth = 0, parent = null) { tasks.forEach(t => { fn(t, depth, parent); walk(t.children, fn, depth + 1, t); }); }
+function rebuildIndex() { idx = new Map(); S.projects.forEach(p => walk(p.tasks, (t, d, parent) => idx.set(t.id, { t, p, parent }))); }
+function find(id, tasks = proj().tasks, parent = null) {
+  for (let i = 0; i < tasks.length; i++) {
+    const t = tasks[i];
+    if (t.id === id) return { t, arr: tasks, i, parent };
+    const r = find(id, t.children, t); if (r) return r;
+  }
+  return null;
+}
+function findGlobal(id) { for (const p of S.projects) { const r = find(id, p.tasks); if (r) return { ...r, p }; } return null; }
+
+/* ---------- histórico de ações ---------- */
+const EVL = {
+  projeto_criado: 'Projeto criado', subprojeto_criado: 'Subprojeto criado', projeto_renomeado: 'Projeto renomeado', projeto_excluido: 'Projeto excluído',
+  tarefa_criada: 'Tarefa criada', tarefa_renomeada: 'Tarefa renomeada', tarefa_concluida: 'Tarefa concluída', tarefa_concluida_auto: 'Tarefa concluída automaticamente (todas as subtarefas prontas)',
+  tarefa_reaberta: 'Tarefa reaberta', tarefa_reaberta_auto: 'Tarefa reaberta automaticamente (subtarefa nova ou reaberta)', tarefa_excluida: 'Tarefa excluída',
+  tarefa_duplicada: 'Tarefa duplicada', tarefa_movida: 'Tarefa movida', tarefa_movida_projeto: 'Tarefa movida para outro projeto', modelo_inserido: 'Modelo inserido',
+  cronometro_iniciado: 'Cronômetro iniciado', cronometro_pausado: 'Cronômetro pausado', tempo_manual: 'Tempo manual adicionado', tempo_editado: 'Registro de tempo editado',
+  tempo_apagado: 'Registro de tempo apagado', comentario: 'Comentário adicionado', nota_sessao: 'Nota da sessão registrada', descricao_editada: 'Descrição da tarefa alterada', comentario_apagado: 'Comentário apagado', modelo_criado: 'Modelo criado', modelo_excluido: 'Modelo excluído'
+};
+function locate(tid) {
+  const rec = (list, chain) => { for (const t of list) { if (t.id === tid) return { t, chain }; const x = rec(t.children, [...chain, t]); if (x) return x; } return null; };
+  for (const p of S.projects) { const r = rec(p.tasks, []); if (r) return { ...r, p }; }
+  return null;
+}
+const sessTxt = (a, b) => `${fdt(a)} → ${fdt(b)} (${fmt(b - a)}, ${Math.floor((b - a) / 1000)} s)`;
+function ev(a, o = {}) {
+  const e = { ts: Date.now(), a }; let p = o.p;
+  if (o.t) { const L = locate(o.t.id); if (L) { p = p || L.p; e.tn = [...L.chain, o.t].map(x => x.title || 'Sem título').join(' > '); } else e.tn = o.t.title || 'Sem título'; e.tid = o.t.id; }
+  if (p) { e.pid = p.id; e.pn = projPath(p); }
+  if (o.d) e.d = o.d;
+  S.events.push(e); if (S.events.length > 50000) S.events.splice(0, S.events.length - 50000);
+}
+
+/* ---------- foco (tarefa aberta) ---------- */
+function curFocus() {
+  const p = proj(); if (!p) return null;
+  const fid = S.focus[p.id]; if (!fid) return null;
+  const e = idx.get(fid); if (e && e.p.id === p.id) return e.t;
+  delete S.focus[p.id]; return null;
+}
+const curList = () => { const f = curFocus(); return f ? f.children : proj().tasks; };
+function setFocus(id) { if (S.active) S.focus[S.active] = id || null; }
+
+/* ---------- progresso ---------- */
+function stats(t) {
+  if (!t.children.length) return { p: t.done ? 1 : 0 };
+  return { p: t.children.reduce((a, c) => a + stats(c).p, 0) / t.children.length };
+}
+function projProg(p) {
+  const parts = p.tasks.map(t => stats(t).p);
+  subsOf(p.id).forEach(c => { const v = projProg(c); if (v !== null) parts.push(v); });
+  return parts.length ? parts.reduce((a, b) => a + b, 0) / parts.length : null;
+}
+const pv = p => projProg(p) ?? 0;
+function counts(tasks) { let total = 0, done = 0; walk(tasks, t => { total++; if (t.done) done++; }); return { total, done }; }
+function projCounts(p) { const c = counts(p.tasks); subsOf(p.id).forEach(s => { const k = projCounts(s); c.total += k.total; c.done += k.done; }); return c; }
+function normalize(tasks, p) {
+  tasks.forEach(t => {
+    if (!t.children.length) return;
+    normalize(t.children, p);
+    const all = t.children.every(c => c.done);
+    if (all !== t.done) { t.done = all; t.completedAt = all ? Date.now() : null; if (p) ev(all ? 'tarefa_concluida_auto' : 'tarefa_reaberta_auto', { p, t }); }
+  });
+}
+function setAll(t, v) { t.done = v; t.completedAt = v ? Date.now() : null; t.children.forEach(c => setAll(c, v)); }
+
+/* ---------- tempo ---------- */
+function ownTime(t, now = Date.now()) {
+  let s = t.logs.reduce((a, l) => a + (l.end - l.start), 0);
+  if (S.running && S.running.tid === t.id) s += now - S.running.start;
+  return s;
+}
+const totalTime = (t, now = Date.now()) => ownTime(t, now) + t.children.reduce((a, c) => a + totalTime(c, now), 0);
+const projTime = p => p.tasks.reduce((a, t) => a + totalTime(t), 0) + subsOf(p.id).reduce((a, s) => a + projTime(s), 0);
+let pendingNote = null, noteCur = null;
+function stopTimer(ask) {
+  if (!S.running) return;
+  const e = idx.get(S.running.tid) || findGlobal(S.running.tid), end = Date.now(), note = (S.running.note || '').trim();
+  if (e && end - S.running.start >= 1000) {
+    const l = { start: S.running.start, end }; if (note) l.note = note;
+    e.t.logs.push(l); ev('cronometro_pausado', { t: e.t, d: 'sessão ' + sessTxt(S.running.start, end) + (note ? ` — nota: ${note}` : '') });
+    if (ask) pendingNote = { tid: e.t.id, start: l.start };
+  }
+  S.running = null;
+}
+function openNote(tid, start) {
+  const e = idx.get(tid); if (!e) return; const l = e.t.logs.find(x => x.start === start); if (!l) return;
+  noteCur = { tid, start };
+  $('#noteDlg .nd-meta').textContent = `${e.t.title || 'Sem título'} · ${fdt(l.start)} → ${sameDay(l.start, l.end) ? ftime(l.end) : fdt(l.end)} (${fmt(l.end - l.start)})`;
+  $('#ndText').value = l.note || ''; $('#noteDlg').classList.add('show');
+  setTimeout(() => { const t = $('#ndText'); t.focus(); t.setSelectionRange(t.value.length, t.value.length); }, 40);
+}
+function flushNote() { if (pendingNote) { const n = pendingNote; pendingNote = null; openNote(n.tid, n.start); } }
+const closeNote = () => { $('#noteDlg').classList.remove('show'); noteCur = null; };
+function toggleTimer(id) {
+  if (S.running && S.running.tid === id) { stopTimer(true); commit(); flushNote(); return; }
+  stopTimer(true); S.running = { tid: id, start: Date.now(), note: '' }; const e = idx.get(id); if (e) ev('cronometro_iniciado', { t: e.t }); commit(); flushNote();
+}
+
+/* ---------- modelos ---------- */
+function parseOutline(text) {
+  const root = { children: [] }, stack = [{ lvl: -1, node: root }];
+  (text || '').split('\n').forEach(raw => {
+    const line = raw.replace(/\t/g, '  ').replace(/\s+$/, '');
+    if (!line.trim()) return;
+    const lvl = Math.floor((line.length - line.trimStart().length) / 2);
+    const title = line.trim().replace(/^[-*•]\s+/, '');
+    while (stack.length > 1 && stack[stack.length - 1].lvl >= lvl) stack.pop();
+    const node = { title, children: [] };
+    stack[stack.length - 1].node.children.push(node);
+    stack.push({ lvl, node });
+  });
+  return root.children;
+}
+const countNodes = ns => ns.reduce((a, n) => a + 1 + countNodes(n.children), 0);
+const toTask = n => mk(n.title, n.children.map(toTask));
+const buildFromTpl = tpl => mk(tpl.name || 'Modelo', parseOutline(tpl.body).map(toTask));
+const tplCount = tpl => countNodes(parseOutline(tpl.body));
+
+/* ---------- commit / render ---------- */
+function commit() { S.projects.forEach(p => normalize(p.tasks, p)); save(); render(); }
+
+function render() {
+  const ae = document.activeElement;
+  const keep = ae && (ae.classList.contains('runNote') || ae.classList.contains('descIn')) ? { cls: ae.classList.contains('runNote') ? 'runNote' : 'descIn', a: ae.selectionStart, b: ae.selectionEnd } : null;
+  rebuildIndex();
+  if (S.view === 'project' && !proj()) { S.view = 'overview'; S.active = null; }
+  renderSide();
+  if (S.view === 'templates') renderTemplates();
+  else if (S.view === 'project') renderProject();
+  else renderOverview();
+  renderChrome();
+  document.body.classList.toggle('reorder', reorder && S.view === 'project');
+  updateTimes();
+  if (keep) { const ta = document.querySelector('#main .' + keep.cls); if (ta) { ta.focus(); try { ta.setSelectionRange(keep.a, keep.b); } catch (_) {} } }
+}
+
+function miniRing(v, size = 16) {
+  const sw = size > 18 ? 2.6 : 2, h = size / 2, r = h - sw, c = 2 * Math.PI * r;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform:rotate(-90deg);flex:none"><circle cx="${h}" cy="${h}" r="${r}" fill="none" stroke="var(--sand)" stroke-width="${sw}"/>${v > 0 ? `<circle cx="${h}" cy="${h}" r="${r}" fill="none" stroke="${v >= 1 ? 'var(--ok)' : 'var(--accent)'}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - v)}"/>` : ''}</svg>`;
+}
+function ringBig(v) {
+  const r = 28, c = 2 * Math.PI * r;
+  return `<div class="ring"><svg viewBox="0 0 64 64"><circle class="trk" cx="32" cy="32" r="${r}"/>${v > 0 ? `<circle class="val ${v >= 1 ? 'ok' : ''}" cx="32" cy="32" r="${r}" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - v)}"/>` : ''}</svg><span>${pctOf(v)}<small>%</small></span></div>`;
+}
+const runPill = run => `<div class="runpill"><span class="dot"></span><div class="rt" data-act="goto-run"><div class="rn">${esc(run.t.title) || 'Sem título'}</div><div class="rv" data-run></div></div><button class="ib" data-act="stop-run" title="Pausar">${I.pause}</button></div>`;
+
+function renderSide() {
+  const run = S.running && idx.get(S.running.tid), order = projOrder();
+  $('#side').innerHTML = `
+    <div class="brand"><span class="logo">${I.leaf}</span>Ramo</div>
+    <nav class="nav">
+      <div class="nav-item ${S.view === 'overview' ? 'active' : ''}" data-act="nav-overview">${I.home}<span class="nm">Visão geral</span></div>
+      <div class="nav-item ${S.view === 'templates' ? 'active' : ''}" data-act="nav-templates">${I.tpl}<span class="nm">Modelos</span><span class="cnt">${S.templates.length || ''}</span></div>
+    </nav>
+    <div class="sec-label"><span>Projetos</span><button class="ib sm" data-act="new-project" title="Novo projeto">${I.plus}</button></div>
+    <div class="ptree">${order.length ? order.map(({ p, d }) => `
+      <div class="nav-item ${S.view === 'project' && S.active === p.id ? 'active' : ''}" data-act="go" data-pid="${p.id}" data-drop="${p.id}" style="padding-left:${12 + d * 16}px">
+        ${miniRing(pv(p))}<span class="nm">${esc(p.name) || 'Sem nome'}</span><span class="pc">${pctOf(pv(p))}%</span>
+      </div>`).join('') : '<div class="muted" style="padding:6px 12px">Nenhum projeto</div>'}
+    </div>
+    ${run ? runPill(run) : ''}
+    <div class="foot">${syncPill()}</div>`;
+}
+
+function renderChrome() {
+  const run = S.running && idx.get(S.running.tid);
+  const tabs = [['nav-overview', I.home, 'Início', S.view === 'overview'], ['open-projects', I.folder0, 'Projetos', S.view === 'project'], ['nav-templates', I.tpl, 'Modelos', S.view === 'templates'], ['export', I.down, 'Exportar', false]];
+  $('#tabbar').innerHTML = tabs.map(([a, ic, l, on]) => `<button class="tab ${on ? 'on' : ''}" data-act="${a}">${ic}<span>${l}</span></button>`).join('');
+  const f = S.view === 'templates' ? ['new-tpl', 'Novo modelo'] : S.view === 'project' ? ['add-root', curFocus() ? 'Nova subtarefa' : 'Nova tarefa'] : ['new-project', 'Novo projeto'];
+  $('#fab').innerHTML = `<button class="fab" data-act="${f[0]}" aria-label="${f[1]}" title="${f[1]}">${I.plus}</button>`;
+  $('#runbar').innerHTML = run ? runPill(run) : '';
+  document.body.classList.toggle('has-run', !!run);
+}
+const projSheet = () => `<div class="pl">Projetos</div>${projOrder().map(({ p, d }) => `<button data-act="go" data-pid="${p.id}" class="${S.view === 'project' && S.active === p.id ? 'cur' : ''}" style="padding-left:${12 + d * 18}px">${miniRing(pv(p), 18)}<span>${esc(p.name) || 'Sem nome'}</span><span class="c">${pctOf(pv(p))}%</span></button>`).join('') || '<div class="pe">Nenhum projeto ainda.</div>'}<hr><button data-act="new-project">${I.plus}<span>Novo projeto</span></button>`;
+
+const heroHTML = o => `<header class="hero">${ringBig(o.v)}<div class="hero-main"><h1 class="h1" spellcheck="false" ${o.attr || ''}${o.dim ? ' style="color:var(--muted)"' : ''}>${o.title}</h1><div class="meta">${o.meta.filter(Boolean).map(m => `<span>${m}</span>`).join('')}</div></div>${o.menu || ''}</header>`;
+const timeMeta = k => `${I.clock}<b data-tt="${k}" data-z="0:00:00"></b>`;
+const exportBar = wipe => `<div class="exportbar">${wipe ? `<button class="btn ghost danger-ghost" data-act="wipe">${I.trash} Apagar todos os dados</button>` : ''}<button class="btn" data-act="export">${I.down} Exportar dados</button></div>`;
+const reorderBtn = () => `<button class="btn ${reorder ? 'primary' : ''}" data-act="reorder">${reorder ? `${I.check} <span class="hide-m">Concluir organização</span><span class="show-m">Pronto</span>` : `${I.reorder} Reorganizar`}</button>`;
+const expandBtns = () => `<button class="btn icon" data-act="expand" title="Expandir tudo">${I.expand}</button><button class="btn icon" data-act="collapse" title="Recolher tudo">${I.collapse}</button>`;
+const menuToggle = () => '';
+
+function rowHTML(t) {
+  const has = t.children.length, pc = pctOf(stats(t).p);
+  const run = S.running && S.running.tid === t.id;
+  const chk = t.done ? 'done' : (has && pc > 0 ? 'partial' : '');
+  const nc = t.comments.length;
+  return `<div class="node"><div class="row ${t.done ? 'done-row' : ''} ${run ? 'running' : ''}" data-id="${t.id}" ${reorder ? 'draggable="true"' : ''}>
+    <span class="handle">${I.grip}</span>
+    <button class="caret ${has ? '' : 'leaf'} ${has && !t.collapsed ? 'open' : ''}" data-act="caret" aria-label="Expandir">${I.caret}</button>
+    <button class="check ${chk}" data-act="toggle" style="--p:${pc}" aria-label="Concluir">${I.check}</button>
+    <span class="title" ${editingId === t.id ? 'contenteditable="true"' : ''} spellcheck="false">${esc(t.title)}</span>
+    ${has ? `<span class="chip ${pc === 100 ? 'ok' : ''}" title="${t.children.length} subtarefa(s)">${pc}%</span>` : ''}
+    <span class="time" data-tt="${t.id}"></span>
+    <span class="rbtns"><button class="rb" data-act="mv-up" title="Mover para cima">${I.up}</button><button class="rb" data-act="mv-down" title="Mover para baixo">${I.dn}</button><button class="rb" data-act="mv-out" title="Subir um nível">${I.back}</button><button class="rb" data-act="mv-in" title="Colocar dentro da tarefa de cima">${I.enter}</button></span>
+    <button class="ib hov ${run ? 'on show' : ''}" data-act="timer" title="${run ? 'Pausar' : 'Iniciar'} cronômetro">${run ? I.pause : I.play}</button>
+    <button class="ib hov" data-act="addsub" title="Adicionar subtarefa">${I.plus}</button>
+    <button class="ib hov" data-act="more" title="Mais opções">${I.more}</button>
+    <button class="ib open" data-act="zoom" title="Abrir">${I.enter}</button>
+  </div>${has && !t.collapsed ? `<div class="children">${t.children.map(rowHTML).join('')}</div>` : ''}</div>`;
+}
+
+function projCrumbs(p, tail) {
+  const chain = projChain(p);
+  if (!chain.length && !tail) return '';
+  const up = chain[chain.length - 1];
+  const back = tail ? `data-act="zoom" data-id="${tail.up}"` : `data-act="go" data-pid="${up.id}"`;
+  const upName = tail ? tail.upName : (up.name || 'Sem nome');
+  return `<nav class="crumbs">
+    <button class="back" ${back} title="Voltar">${I.back}<span class="bl">${esc(upName)}</span></button>
+    ${chain.map(c => `<a data-act="go" data-pid="${c.id}">${esc(c.name) || 'Sem nome'}</a><span class="sep">/</span>`).join('')}
+    ${tail ? `<a data-act="zoom" data-id="">${esc(p.name) || 'Sem nome'}</a>${tail.html}` : `<span class="cur">${esc(p.name) || 'Sem nome'}</span>`}
+  </nav>`;
+}
+
+function renderProject() {
+  const f = curFocus(); if (f) return renderTask(f);
+  const p = proj(), c = projCounts(p), subs = subsOf(p.id), v = pv(p);
+  $('#main').innerHTML = `
+    ${projCrumbs(p)}
+    ${heroHTML({ v, title: esc(p.name), attr: 'data-ptitle', menu: `<button class="ib" data-act="pmenu" title="Opções">${I.more}</button>`,
+      meta: [`<b>${c.done}/${c.total}</b> tarefas`, timeMeta('p:' + p.id), subs.length ? `<b>${subs.length}</b> subprojeto(s)` : '', `Criado em ${fday(p.created)}`] })}
+    ${subs.length ? `<div class="sec-title">Subprojetos <span class="n">${subs.length}</span></div>
+      <div class="sub-grid">${subs.map(s => { const sp = pv(s), sc = projCounts(s), ns = subsOf(s.id).length; return `
+        <div class="sub-card" data-act="go" data-pid="${s.id}">
+          <div class="top"><span class="nm">${esc(s.name) || 'Sem nome'}</span><span class="pc">${pctOf(sp)}%</span></div>
+          <div class="mt">${sc.done}/${sc.total} tarefas${ns ? ` · ${ns} subprojeto(s)` : ''}</div>
+          <div class="bar"><b style="width:${sp * 100}%"></b></div>
+        </div>`; }).join('')}
+        <div class="sub-card new" data-act="new-sub">${I.plus} Novo subprojeto</div>
+      </div>` : ''}
+    <div class="sec-title">Tarefas <span class="n">${p.tasks.length}</span></div>
+    <div class="toolbar">
+      <button class="btn primary hide-m" data-act="add-root">${I.plus} Nova tarefa</button>
+      <button class="btn soft" data-act="tpl-menu">${I.tpl} Modelo</button>
+      ${subs.length ? '' : `<button class="btn soft" data-act="new-sub">${I.folder} Subprojeto</button>`}
+      <span class="grow"></span>
+      ${p.tasks.length ? reorderBtn() + expandBtns() : ''}
+    </div>
+    <div class="list">
+      <div id="tree">${p.tasks.length ? p.tasks.map(rowHTML).join('') : '<div class="empty">Nenhuma tarefa ainda.</div>'}</div>
+      <div class="addline" data-act="add-root" data-rootdrop>${I.plus} Adicionar tarefa</div>
+    </div>
+    ${exportBar()}`;
+}
+
+function dataHTML(t) {
+  return `<div class="panel">
+      <div class="sec-title">Descrição</div>
+      <textarea class="descIn desc" rows="4" placeholder="Descreva a tarefa: objetivo, contexto, o que significa estar pronta…">${esc(t.desc || '')}</textarea>
+    </div>
+    <div class="panel">
+      <div class="sec-title">Sessões de trabalho <span class="n">${t.logs.length + (S.running && S.running.tid === t.id ? 1 : 0)}</span></div>
+      ${logsHTML(t)}
+      <div class="rowf" style="margin-top:12px"><input type="number" class="manMin" min="1" placeholder="min" inputmode="numeric"><button class="btn soft" data-act="add-man">Lançar tempo manual</button></div>
+    </div>`;
+}
+
+function logsHTML(t) {
+  const run = S.running && S.running.tid === t.id, out = [];
+  const isEd = i => editLog && editLog.tid === t.id && String(editLog.i) === String(i);
+  const acts = `<div class="acts"><button class="btn ghost" data-act="cancel-log">Cancelar</button><button class="btn primary" data-act="save-log">Salvar</button></div>`;
+  if (run) out.push(isEd('run')
+    ? `<div class="lg-edit"><label>Início<input type="datetime-local" step="1" class="le-start" value="${toInput(S.running.start)}"></label><label>Fim<input type="text" value="em andamento" disabled></label><div class="note">Ajuste o horário em que você realmente começou. Para corrigir o fim, pause o cronômetro e edite a sessão.</div>${acts}</div>`
+    : `<div class="lg run"><div class="lg-top"><span><span class="live">● Em andamento</span> desde ${fdt(S.running.start)}</span><span class="lga"><span class="dur" data-runlive></span><button class="x e" data-act="edit-log" data-i="run" title="Editar início">${I.edit}</button></span></div>
+       <textarea class="runNote" rows="2" placeholder="Anote o que está fazendo enquanto trabalha…">${esc(S.running.note || '')}</textarea></div>`);
+  t.logs.map((l, i) => ({ l, i })).sort((a, b) => b.l.start - a.l.start).forEach(({ l, i }) => out.push(isEd(i)
+    ? `<div class="lg-edit"><label>Início<input type="datetime-local" step="1" class="le-start" value="${toInput(l.start)}"></label><label>Fim<input type="datetime-local" step="1" class="le-end" value="${toInput(l.end)}"></label><label class="full">Nota<textarea class="le-note" rows="3" placeholder="O que foi feito nesta sessão">${esc(l.note || '')}</textarea></label>${acts}</div>`
+    : `<div class="lg"><div class="lg-top"><span>${fdt(l.start)} → ${sameDay(l.start, l.end) ? ftime(l.end) : fdt(l.end)}${l.manual ? '<span class="tag">manual</span>' : ''}${l.edited ? '<span class="tag">editado</span>' : ''}</span><span class="lga"><span class="dur">${fmt(l.end - l.start)}</span><button class="x e" data-act="edit-log" data-i="${i}" title="Editar">${I.edit}</button><button class="x" data-act="del-log" data-i="${i}" title="Apagar">×</button></span></div>
+       ${l.note ? `<div class="lg-note" data-act="note-log" data-i="${i}" title="Editar nota">${esc(l.note)}</div>` : `<button class="lg-addnote" data-act="note-log" data-i="${i}">${I.edit} Adicionar nota</button>`}</div>`));
+  return out.length ? out.join('') : '<div class="muted">Nenhuma sessão ainda. Inicie o cronômetro para registrar.</div>';
+}
+
+function renderTask(t) {
+  const e = idx.get(t.id), p = e.p, v = stats(t).p, c = counts(t.children);
+  const run = S.running && S.running.tid === t.id;
+  const chain = []; let x = e; while (x && x.parent) { chain.unshift(x.parent); x = idx.get(x.parent.id); }
+  const tail = {
+    up: e.parent ? e.parent.id : '',
+    upName: e.parent ? (e.parent.title || 'Sem título') : (p.name || 'Sem nome'),
+    html: chain.map(a => `<span class="sep">/</span><a data-act="zoom" data-id="${a.id}">${esc(a.title) || 'Sem título'}</a>`).join('') + `<span class="sep">/</span><span class="cur">${esc(t.title) || 'Sem título'}</span>`
+  };
+  $('#main').innerHTML = `
+    ${projCrumbs(p, tail)}
+    ${heroHTML({ v, title: esc(t.title), attr: 'data-ftitle', dim: t.done, menu: `<button class="ib" data-act="tmenu" data-id="${t.id}" title="Opções">${I.more}</button>`,
+      meta: [c.total ? `<b>${c.done}/${c.total}</b> subtarefas` : `<span class="pill ${t.done ? 'ok' : ''}">${t.done ? 'Concluída' : 'Em aberto'}</span>`, timeMeta(t.id), t.children.length ? `só nesta <b data-ot="${t.id}"></b>` : '', `Criada em ${fday(t.created)}`] })}
+    <div class="toolbar">
+      <button class="btn ${run ? 'on' : 'primary'}" data-act="timer" data-id="${t.id}">${run ? `${I.pause} Pausar · <span data-runlive></span>` : `${I.play} Iniciar cronômetro`}</button>
+      <button class="btn soft" data-act="toggle" data-id="${t.id}">${t.done ? 'Reabrir' : `${I.check} Concluir`}</button>
+    </div>
+    <div class="sec-title">Subtarefas <span class="n">${t.children.length}</span></div>
+    <div class="toolbar">
+      <button class="btn primary hide-m" data-act="add-root">${I.plus} Nova subtarefa</button>
+      <button class="btn soft" data-act="tpl-menu">${I.tpl} Modelo</button>
+      <span class="grow"></span>
+      ${t.children.length ? reorderBtn() + expandBtns() : ''}
+    </div>
+    <div class="list">
+      <div id="tree">${t.children.length ? t.children.map(rowHTML).join('') : '<div class="empty">Nenhuma subtarefa ainda.</div>'}</div>
+      <div class="addline" data-act="add-root" data-rootdrop>${I.plus} Adicionar subtarefa</div>
+    </div>
+    <div class="tdata" data-task="${t.id}">${dataHTML(t)}</div>
+    ${exportBar()}`;
+}
+
+function renderOverview() {
+  let tot = 0, dn = 0;
+  S.projects.forEach(p => { const c = counts(p.tasks); tot += c.total; dn += c.done; });
+  const tops = subsOf(null).map(projProg).filter(v => v !== null);
+  const avg = tops.length ? tops.reduce((a, b) => a + b, 0) / tops.length : 0;
+  const lastAct = p => { let m = p.created; walk(p.tasks, t => { m = Math.max(m, t.completedAt || 0, t.created || 0, ...t.comments.map(c => c.ts), ...t.logs.map(l => l.end)); }); return m; };
+  $('#main').innerHTML = `
+    ${heroHTML({ v: avg, title: 'Visão geral', meta: [`<b>${dn}/${tot}</b> tarefas concluídas`, timeMeta('all'), `<b>${S.projects.length}</b> projeto(s)`] })}
+    <div class="hero-sync">${syncPill()}</div>
+    <div class="sec-title">Projetos <span class="n">${S.projects.length}</span><span class="grow"></span><button class="btn soft sm hide-m" data-act="new-project">${I.plus} Novo projeto</button></div>
+    ${S.projects.length ? `<div class="plist">${projOrder().map(({ p, d }) => { const v = pv(p), c = projCounts(p); return `
+      <div class="prow" data-act="go" data-pid="${p.id}" style="--d:${d}">
+        ${miniRing(v, 30)}
+        <div class="pm"><div class="pn">${esc(p.name) || 'Sem nome'}</div><div class="ps">${c.done}/${c.total} tarefas · <span data-tt="p:${p.id}" data-z="0:00:00"></span> · ${fday(lastAct(p))}</div></div>
+        <div class="pp">${pctOf(v)}%</div>
+      </div>`; }).join('')}</div>`
+    : `<div class="empty-card">${I.folder0}<b>Nenhum projeto ainda</b><span>Crie um projeto para começar a registrar tarefas e tempo.</span><button class="btn primary" data-act="new-project">${I.plus} Criar projeto</button></div>`}
+    ${exportBar(true)}`;
+}
+
+/* ---------- página de modelos ---------- */
+const prevHTML = tpl => {
+  const ul = list => list.length ? `<ul>${list.map(n => `<li><span>${esc(n.title)}</span>${ul(n.children)}</li>`).join('')}</ul>` : '';
+  return `<ul><li class="root"><span>${esc(tpl.name) || 'Modelo'}</span>${ul(parseOutline(tpl.body))}</li></ul>`;
+};
+function renderTemplates() {
+  const sel = S.templates.find(x => x.id === S.tplSel) || S.templates[0];
+  S.tplSel = sel ? sel.id : null;
+  $('#main').innerHTML = `
+    <div class="page-head"><h1 class="h1">Modelos</h1><button class="btn primary hide-m" data-act="new-tpl">${I.plus} Novo modelo</button></div>
+    <p class="sub">Estruturas de tarefas prontas para inserir em qualquer projeto ou dentro de uma tarefa.</p>
+    ${sel ? `<div class="tpl-layout">
+      <div class="panel tpl-list">${S.templates.map(t => `
+        <div class="tpl-item ${t.id === S.tplSel ? 'active' : ''}" data-act="sel-tpl" data-tid="${t.id}">
+          <span class="ic">${I.tpl}</span><div><div class="tn">${esc(t.name) || 'Sem nome'}</div><div class="tc">${tplCount(t)} tarefa(s)</div></div>
+        </div>`).join('')}
+      </div>
+      <div class="panel" data-tpl="${sel.id}">
+        <div style="display:flex;gap:10px;align-items:center">
+          <input type="text" class="tpl-name" value="${esc(sel.name)}" placeholder="Nome do modelo" spellcheck="false">
+          <button class="btn ghost danger-ghost" data-act="del-tpl" title="Excluir modelo">${I.trash}<span class="hide-m">Excluir</span></button>
+        </div>
+        <div class="tpl-cols">
+          <div><div class="lbl"><span>Estrutura <span class="hide-m" style="font-weight:500">· uma tarefa por linha, Tab cria subtarefa</span></span><span class="tpl-tools"><button class="rb" data-act="tpl-out" title="Diminuir recuo">${I.back}</button><button class="rb" data-act="tpl-in" title="Recuar (vira subtarefa)">${I.enter}</button></span></div>
+            <textarea class="tpl-body" spellcheck="false" placeholder="Etapa 1&#10;  Subtarefa&#10;  Subtarefa&#10;Etapa 2">${esc(sel.body)}</textarea></div>
+          <div><div class="lbl"><span>Pré-visualização</span><span class="tpl-count">${tplCount(sel)} tarefa(s)</span></div>
+            <div class="tpl-prev">${prevHTML(sel)}</div></div>
+        </div>
+      </div>
+    </div>` : `<div class="empty-card">${I.tpl}<b>Nenhum modelo ainda</b><span>Monte uma estrutura de tarefas uma vez e reutilize sempre que precisar.</span><button class="btn primary" data-act="new-tpl">${I.plus} Criar modelo</button></div>`}`;
+}
+function tplUpdateLive(box) {
+  const t = S.templates.find(x => x.id === box.dataset.tpl); if (!t) return;
+  t.name = box.querySelector('.tpl-name').value; t.body = box.querySelector('.tpl-body').value; save();
+  box.querySelector('.tpl-prev').innerHTML = prevHTML(t);
+  box.querySelector('.tpl-count').textContent = tplCount(t) + ' tarefa(s)';
+  const it = document.querySelector(`.tpl-item[data-tid="${t.id}"]`);
+  if (it) { it.querySelector('.tn').textContent = t.name || 'Sem nome'; it.querySelector('.tc').textContent = tplCount(t) + ' tarefa(s)'; }
+}
+function indentLines(ta, out) {
+  const v = ta.value, s = ta.selectionStart, e = ta.selectionEnd;
+  const ls = v.lastIndexOf('\n', s - 1) + 1;
+  let le = v.indexOf('\n', e); if (le < 0) le = v.length;
+  let d0 = 0, dt = 0;
+  const nl = v.slice(ls, le).split('\n').map((l, i) => {
+    if (!out) { if (i === 0) d0 = 2; dt += 2; return '  ' + l; }
+    const r = l.startsWith('  ') ? 2 : l.startsWith(' ') ? 1 : 0; if (i === 0) d0 = -r; dt -= r; return l.slice(r);
+  }).join('\n');
+  ta.value = v.slice(0, ls) + nl + v.slice(le);
+  ta.selectionStart = Math.max(ls, s + d0); ta.selectionEnd = Math.max(ls, e + dt);
+}
+
+/* ---------- tempo ao vivo ---------- */
+function updateTimes() {
+  const now = Date.now();
+  document.querySelectorAll('[data-tt]').forEach(el => {
+    const k = el.dataset.tt; let v = 0;
+    if (k === 'all') v = subsOf(null).reduce((a, p) => a + projTime(p), 0);
+    else if (k.startsWith('p:')) { const p = projById(k.slice(2)); v = p ? projTime(p) : 0; }
+    else { const e = idx.get(k); v = e ? totalTime(e.t, now) : 0; }
+    el.textContent = v ? fmt(v) : (el.dataset.z || '');
+  });
+  document.querySelectorAll('[data-ot]').forEach(el => { const e = idx.get(el.dataset.ot); el.textContent = e ? fmt(ownTime(e.t, now)) : ''; });
+  if (S.running) document.querySelectorAll('[data-run],[data-runlive]').forEach(r => r.textContent = fmt(now - S.running.start));
+}
+setInterval(() => { if (S.running) updateTimes(); }, 1000);
+
+/* ---------- operações ---------- */
+function startEdit(el) {
+  if (!el) return; el.setAttribute('contenteditable', 'true'); el.focus();
+  const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+}
+function focusTitle(id, selectAll) {
+  const el = document.querySelector(`.row[data-id="${id}"] .title`); if (!el) return;
+  if (!el.isContentEditable) el.setAttribute('contenteditable', 'true');
+  el.focus(); const r = document.createRange(); r.selectNodeContents(el); if (!selectAll) r.collapse(false);
+  const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+}
+function saveTitle(el) {
+  const row = el.closest('.row'); if (!row) return;
+  const e = idx.get(row.dataset.id); if (!e) return;
+  const v = el.textContent.replace(/\s+/g, ' ').trim();
+  if (v !== e.t.title) { const old = e.t.title; e.t.title = v; if (!old) ev('tarefa_criada', { t: e.t }); else ev('tarefa_renomeada', { t: e.t, d: `“${old}” → “${v || 'Sem título'}”` }); save(); }
+}
+function flash(id) { const r = document.querySelector(`.row[data-id="${id}"]`); if (r) { r.classList.add('flash'); r.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } }
+function newTask() { const t = mk(''); editingId = t.id; newIds.add(t.id); return t; }
+function addRoot() { reorder = false; const t = newTask(); curList().push(t); commit(); focusTitle(t.id); }
+function addSub(id) { const f = find(id); const t = newTask(); f.t.children.push(t); f.t.collapsed = false; commit(); focusTitle(t.id); }
+function addAfter(id) { const f = find(id); const t = newTask(); f.arr.splice(f.i + 1, 0, t); commit(); focusTitle(t.id); }
+function indent(id) { const f = find(id); if (!f || f.i === 0) return; const prev = f.arr[f.i - 1]; f.arr.splice(f.i, 1); prev.children.push(f.t); prev.collapsed = false; if (f.t.title) ev('tarefa_movida', { t: f.t, d: `virou subtarefa de “${prev.title}”` }); commit(); focusTitle(id); }
+function outdent(id) { const f = find(id); if (!f || !f.parent) return; const left = curFocus() && f.parent.id === curFocus().id; const pf = find(f.parent.id); f.arr.splice(f.i, 1); pf.arr.splice(pf.i + 1, 0, f.t); if (f.t.title) ev('tarefa_movida', { t: f.t, d: `subiu um nível (saiu de “${f.parent.title}”)` }); commit(); if (left) toast('Movida para o nível acima'); else focusTitle(id); }
+function mvBy(id, d) { const f = find(id); if (!f) return; const j = f.i + d; if (j < 0 || j >= f.arr.length) return; [f.arr[f.i], f.arr[j]] = [f.arr[j], f.arr[f.i]]; ev('tarefa_movida', { t: f.t, d: d < 0 ? 'para cima' : 'para baixo' }); commit(); flash(id); }
+function mvIn(id) { const f = find(id); if (!f) return; if (f.i === 0) return toast('Não há tarefa acima para entrar'); const prev = f.arr[f.i - 1]; f.arr.splice(f.i, 1); prev.children.push(f.t); prev.collapsed = false; ev('tarefa_movida', { t: f.t, d: `virou subtarefa de “${prev.title}”` }); commit(); flash(id); }
+function mvOut(id) { const f = find(id); if (!f) return; const cf = curFocus(); if (!f.parent || (cf && f.parent.id === cf.id)) return toast('Já está no primeiro nível'); const pf = find(f.parent.id); f.arr.splice(f.i, 1); pf.arr.splice(pf.i + 1, 0, f.t); ev('tarefa_movida', { t: f.t, d: `subiu um nível (saiu de “${f.parent.title}”)` }); commit(); flash(id); }
+function containsRunning(t) { if (!S.running) return false; let r = false; walk([t], x => { if (x.id === S.running.tid) r = true; }); return r; }
+function del(id, ask = true) {
+  const f = find(id); if (!f) return;
+  const heavy = f.t.children.length || f.t.logs.length || f.t.comments.length;
+  if (ask && heavy) { askConfirm(`Excluir “${f.t.title || 'Sem título'}”${f.t.children.length ? ' e todas as subtarefas' : ''}?`, () => del(id, false)); return; }
+  if (containsRunning(f.t)) stopTimer();
+  if (f.t.title || f.t.children.length) { const n = counts(f.t.children).total; ev('tarefa_excluida', { t: f.t, d: n ? `com ${n} subtarefa(s)` : '' }); }
+  f.arr.splice(f.i, 1); commit();
+}
+function cloneTask(t, root) { const c = mk(root ? `${t.title} (cópia)` : t.title, t.children.map(x => cloneTask(x, false))); c.collapsed = t.collapsed; c.desc = t.desc || ''; return c; }
+function duplicate(id) { const f = find(id); if (!f) return; const c = cloneTask(f.t, true); f.arr.splice(f.i + 1, 0, c); ev('tarefa_duplicada', { t: c, d: `cópia de “${f.t.title}”` }); commit(); flash(c.id); return c; }
+function insertTpl(tid, parentId) {
+  const tpl = S.templates.find(x => x.id === tid); if (!tpl) return;
+  const node = buildFromTpl(tpl);
+  if (parentId) { const f = find(parentId); f.t.children.push(node); f.t.collapsed = false; } else curList().push(node);
+  ev('modelo_inserido', { t: node, d: `modelo “${tpl.name}”, ${counts([node]).total} tarefa(s) criada(s)` });
+  reorder = false; commit(); flash(node.id); toast(`Modelo “${tpl.name}” inserido`);
+}
+function moveTask(srcId, targetId, zone) {
+  if (srcId === targetId) return;
+  const s = find(srcId); if (!s) return;
+  if (targetId && find(targetId, s.t.children)) return;
+  s.arr.splice(s.i, 1); let d;
+  if (!targetId) { curList().push(s.t); d = 'para o fim da lista'; }
+  else { const tg = find(targetId); if (zone === 'inside') { tg.t.children.push(s.t); tg.t.collapsed = false; d = `para dentro de “${tg.t.title}”`; } else { tg.arr.splice(tg.i + (zone === 'after' ? 1 : 0), 0, s.t); d = `para ${zone === 'after' ? 'depois' : 'antes'} de “${tg.t.title}”`; } }
+  ev('tarefa_movida', { t: s.t, d }); commit();
+}
+function moveToProject(srcId, pid) {
+  if (pid === S.active) return;
+  const s = find(srcId), p = projById(pid); if (!s || !p) return;
+  const from = proj(); s.arr.splice(s.i, 1); p.tasks.push(s.t); ev('tarefa_movida_projeto', { t: s.t, p, d: `de “${projPath(from)}” para “${projPath(p)}”` }); commit(); toast(`Movida para “${p.name}”`);
+}
+function newProject(parentId) {
+  hidePop();
+  const p = { id: uid(), name: parentId ? 'Novo subprojeto' : 'Novo projeto', created: Date.now(), parentId: parentId || null, tasks: [] };
+  S.projects.push(p); ev(parentId ? 'subprojeto_criado' : 'projeto_criado', { p }); S.view = 'project'; S.active = p.id; reorder = false; closeNav(); commit(); startEdit($('[data-ptitle]'));
+}
+
+/* ---------- popover / confirmação / toast ---------- */
+const isMobile = () => matchMedia('(max-width: 820px)').matches;
+function showPop(anchor, html) {
+  const pop = $('#pop'); pop.innerHTML = html; pop.classList.add('show');
+  if (isMobile()) { pop.classList.add('sheet'); $('#scrim').classList.add('show'); return; }
+  pop.classList.remove('sheet');
+  const r = anchor.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+  pop.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px';
+  pop.style.top = (r.bottom + h + 8 > innerHeight ? Math.max(8, r.top - h - 6) : r.bottom + 6) + 'px';
+}
+const hidePop = () => { const p = $('#pop'); if (p.classList.contains('sheet') && !document.body.classList.contains('nav-open')) $('#scrim').classList.remove('show'); p.classList.remove('show', 'sheet'); };
+function askConfirm(msg, fn, okLabel = 'Excluir') { hidePop(); cfmFn = fn; $('#cfmMsg').textContent = msg; $('#cfmOk').textContent = okLabel; $('#cfm').classList.add('show'); setTimeout(() => $('#cfmOk').focus(), 30); }
+const closeCfm = () => { $('#cfm').classList.remove('show'); cfmFn = null; };
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('show'), 2200); }
+const closeNav = () => { document.body.classList.remove('nav-open'); $('#scrim').classList.remove('show'); };
+const tplListPop = parentId => S.templates.length
+  ? `<div class="pl">Inserir modelo</div>${S.templates.map(t => `<button data-act="use-tpl" data-tid="${t.id}" ${parentId ? `data-parent="${parentId}"` : ''}>${I.tpl}<span>${esc(t.name) || 'Sem nome'}</span><span class="c">${tplCount(t)}</span></button>`).join('')}<hr><button data-act="nav-templates">${I.edit} Gerenciar modelos</button>`
+  : `<div class="pe">Você ainda não tem modelos.</div><button data-act="new-tpl">${I.plus} Criar modelo</button>`;
+
+/* ---------- exportação ---------- */
+const isAll = () => document.querySelector('input[name=scope]:checked').value === 'all' || !proj();
+const scopeProjects = () => {
+  const all = projOrder().map(x => x.p);
+  if (isAll()) return all;
+  const p = proj(), set = new Set([p, ...projDesc(p)]); return all.filter(x => set.has(x));
+};
+function download(name, content, type) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const slug = s => (s || 'projeto').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+const stamp = () => new Date().toISOString().slice(0, 10);
+const fileBase = () => isAll() ? `ramo-todos-${stamp()}` : `ramo-${slug(proj().name)}-${stamp()}`;
+function exportJSON() {
+  const data = { app: 'Ramo', version: 3, exportedAt: new Date().toISOString(), projects: scopeProjects() };
+  if (isAll()) { data.templates = S.templates; data.events = S.events; }
+  download(fileBase() + '.json', JSON.stringify(data, null, 2), 'application/json');
+}
+function exportTXT() {
+  const ps = scopeProjects(), all = isAll(), now = Date.now(), set = new Set(ps.map(p => p.id));
+  const L = [], w = x => L.push(x);
+  const hms = ms => { const t = Math.max(0, Math.floor(ms / 1000)); return `${pad(Math.floor(t / 3600))}:${pad(Math.floor(t % 3600 / 60))}:${pad(t % 60)}`; };
+  const dur = ms => `${hms(ms)} (${Math.max(0, Math.floor(ms / 1000))} s)`;
+  const ymd = ts => fdt(ts).slice(0, 10), WD = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  const off = -new Date().getTimezoneOffset(), tz = (Intl.DateTimeFormat().resolvedOptions().timeZone || '') + ` (UTC${off >= 0 ? '+' : '-'}${pad(Math.floor(Math.abs(off) / 60))}:${pad(Math.abs(off) % 60)})`;
+  const walkC = (tasks, fn, chain = []) => tasks.forEach(t => { fn(t, chain); walkC(t.children, fn, [...chain, t]); });
+  const tpath = (chain, t) => [...chain, t].map(x => x.title || 'Sem título').join(' > ');
+
+  // sessões
+  const sess = [];
+  ps.forEach(p => walkC(p.tasks, (t, ch) => {
+    t.logs.forEach(l => sess.push({ s: l.start, e: l.end, p, path: tpath(ch, t), o: (l.manual ? 'manual' : 'cronômetro') + (l.edited ? ', editada' : ''), n: l.note || '' }));
+    if (S.running && S.running.tid === t.id) sess.push({ s: S.running.start, e: now, p, path: tpath(ch, t), o: 'cronômetro, EM ANDAMENTO no momento da exportação', n: (S.running.note || '').trim() });
+  }));
+  sess.sort((a, b) => a.s - b.s);
+  const evs = S.events.filter(e => all || (e.pid && set.has(e.pid))).sort((a, b) => a.ts - b.ts);
+
+  // totais
+  let tot = 0, dn = 0, firstCreated = Infinity; const done = [];
+  ps.forEach(p => walkC(p.tasks, (t, ch) => { tot++; firstCreated = Math.min(firstCreated, t.created || Infinity); if (t.done) { dn++; if (t.completedAt) done.push({ ts: t.completedAt, p, path: tpath(ch, t), leaf: !t.children.length }); } }));
+  const totalMs = sess.reduce((a, x) => a + (x.e - x.s), 0);
+  const stamps = [...sess.map(x => x.s), ...sess.map(x => x.e), ...evs.map(e => e.ts), ...done.map(d => d.ts)];
+  const byDay = {}, addDay = (k, f, v) => { byDay[k] = byDay[k] || { ms: 0, n: 0, done: 0 }; byDay[k][f] += v; };
+  sess.forEach(x => { addDay(ymd(x.s), 'n', 1); let a = x.s; while (a < x.e) { const d = new Date(a), nx = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime(), seg = Math.min(x.e, nx) - a; addDay(ymd(a), 'ms', seg); a += seg; } });
+  done.filter(d => d.leaf).forEach(d => addDay(ymd(d.ts), 'done', 1));
+  const byHour = new Array(24).fill(0);
+  sess.forEach(x => { let a = x.s; while (a < x.e) { const d = new Date(a), nx = new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours() + 1).getTime(), seg = Math.min(x.e, nx) - a; byHour[d.getHours()] += seg; a += seg; } });
+
+  w('RAMO — RELATÓRIO DE PRODUTIVIDADE');
+  w('==================================');
+  w(`Gerado em: ${fdt(now)}`);
+  w(`Fuso horário: ${tz}`);
+  w(`Escopo: ${all ? 'todos os projetos' : `projeto “${projPath(proj())}” e seus subprojetos`}`);
+  w('');
+  w('COMO LER ESTE ARQUIVO');
+  w('- Datas e horas: AAAA-MM-DD HH:MM:SS, no horário local acima.');
+  w('- Durações: HH:MM:SS seguidas do total em segundos entre parênteses.');
+  w('- [x] = tarefa concluída, [ ] = em aberto. O progresso de uma tarefa com subtarefas é a média das subtarefas; o de um projeto é a média das tarefas principais e dos subprojetos.');
+  w('- "Sessão" = intervalo de trabalho numa tarefa, cronometrado ou lançado manualmente. "editada" = horários ajustados depois pelo usuário. "nota" = o que o usuário registrou ter feito naquela sessão.');
+  w('- "Descrição" = texto que o usuário escreveu para explicar a tarefa.');
+  w('- "Tempo próprio" = sessões feitas na própria tarefa; "tempo total" = próprio + todas as subtarefas.');
+  w('- Seções: 1 Resumo · 2 Projetos e tarefas · 3 Sessões de tempo · 4 Histórico de ações.');
+  if (!evs.length || (isFinite(firstCreated) && evs[0].ts > firstCreated + 60000)) w('- Observação: o histórico de ações (seção 4) só existe a partir de quando o recurso foi ativado; antes disso, use as datas de criação/conclusão e as sessões de tempo.');
+  w('');
+
+  w('1. RESUMO');
+  w('---------');
+  w(`Projetos (incluindo subprojetos): ${ps.length}`);
+  w(`Tarefas: ${dn} concluídas de ${tot} (${tot ? Math.round(dn / tot * 100) : 0}%)`);
+  w(`Tempo total registrado: ${dur(totalMs)}`);
+  w(`Sessões de tempo: ${sess.length}${sess.length ? ` | duração média: ${dur(totalMs / sess.length)} | mais longa: ${dur(Math.max(...sess.map(x => x.e - x.s)))}` : ''}`);
+  w(`Período com atividade: ${stamps.length ? `${fdt(Math.min(...stamps))} até ${fdt(Math.max(...stamps))}` : 'sem atividade registrada'}`);
+  const runE = S.running && idx.get(S.running.tid);
+  w(`Cronômetro ligado na exportação: ${runE && set.has(runE.p.id) ? `sim — “${runE.t.title}”, desde ${fdt(S.running.start)}` : 'não'}`);
+  w('');
+  w('Tempo por dia (dia | tempo trabalhado | sessões iniciadas | tarefas finais concluídas):');
+  const days = Object.keys(byDay).sort();
+  if (days.length) days.forEach(k => { const d = new Date(k + 'T12:00:00'); w(`  ${k} (${WD[d.getDay()]}) | ${dur(byDay[k].ms)} | ${byDay[k].n} | ${byDay[k].done}`); });
+  else w('  (nenhum)');
+  w('');
+  w('Tempo por faixa de horário (todas as datas somadas):');
+  const hrs = byHour.map((ms, h) => ({ ms, h })).filter(x => x.ms > 0);
+  if (hrs.length) hrs.forEach(x => w(`  ${pad(x.h)}:00–${pad(x.h)}:59 | ${dur(x.ms)}`)); else w('  (nenhum)');
+  w('');
+  w('Tempo por projeto (inclui subprojetos):');
+  ps.forEach(p => { const c = projCounts(p); w(`  ${projPath(p)} | ${dur(projTime(p))} | progresso ${pctOf(pv(p))}% | ${c.done}/${c.total} tarefas`); });
+  w('');
+
+  w('2. PROJETOS E TAREFAS');
+  w('---------------------');
+  ps.forEach(p => {
+    const c = projCounts(p);
+    w('');
+    w(`### PROJETO: ${projPath(p)}`);
+    w(`Criado em: ${fdt(p.created)} | Progresso: ${pctOf(pv(p))}% | Tarefas: ${c.done}/${c.total} concluídas | Tempo total: ${dur(projTime(p))}`);
+    if (subsOf(p.id).length) w(`Subprojetos: ${subsOf(p.id).map(x => x.name).join('; ')}`);
+    if (!p.tasks.length) { w('  (sem tarefas próprias)'); return; }
+    walkC(p.tasks, (t, ch) => {
+      const ind = '  '.repeat(ch.length + 1), own = ownTime(t, now), tt = totalTime(t, now), info = [];
+      info.push(`criada ${fdt(t.created)}`);
+      if (t.done && t.completedAt) info.push(`concluída ${fdt(t.completedAt)}`, `da criação à conclusão: ${hms(t.completedAt - t.created)}`);
+      if (t.children.length) info.push(`progresso ${pctOf(stats(t).p)}% (${counts(t.children).done}/${counts(t.children).total} subtarefas)`);
+      info.push(`tempo próprio ${dur(own)}`);
+      if (t.children.length) info.push(`tempo total ${dur(tt)}`);
+      info.push(`sessões ${t.logs.length + (S.running && S.running.tid === t.id ? 1 : 0)}`);
+      if (t.logs.length) { const ss = t.logs.map(l => l.start), ee = t.logs.map(l => l.end); info.push(`primeira sessão ${fdt(Math.min(...ss))}`, `última sessão até ${fdt(Math.max(...ee))}`); }
+      w(`${ind}[${t.done ? 'x' : ' '}] ${t.title || 'Sem título'} | ${info.join(' | ')}`);
+      if (t.desc && t.desc.trim()) w(`${ind}    descrição: ${t.desc.trim().replace(/\s*\n\s*/g, ' / ')}`);
+      t.comments.forEach(cm => w(`${ind}    comentário ${fdt(cm.ts)}: ${cm.text.replace(/\s*\n\s*/g, ' / ')}`));
+      [...t.logs].sort((a, b) => a.start - b.start).forEach(l => w(`${ind}    sessão ${fdt(l.start)} → ${fdt(l.end)} (${hms(l.end - l.start)})${l.note ? ` — nota: ${l.note.replace(/\s*\n\s*/g, ' / ')}` : ' — sem nota'}`));
+    });
+  });
+  w('');
+
+  w('3. SESSÕES DE TEMPO (ordem cronológica)');
+  w('---------------------------------------');
+  w('início | fim | duração | segundos | projeto | tarefa | origem | nota');
+  if (sess.length) sess.forEach(x => w(`${fdt(x.s)} | ${fdt(x.e)} | ${hms(x.e - x.s)} | ${Math.floor((x.e - x.s) / 1000)} | ${projPath(x.p)} | ${x.path} | ${x.o} | ${x.n ? x.n.replace(/\s*\n\s*/g, ' / ') : '-'}`));
+  else w('(nenhuma)');
+  w('');
+
+  w('4. HISTÓRICO DE AÇÕES (ordem cronológica)');
+  w('-----------------------------------------');
+  w('data e hora | código | ação | projeto | tarefa | detalhes');
+  if (evs.length) evs.forEach(e => w(`${fdt(e.ts)} | ${e.a.toUpperCase()} | ${EVL[e.a] || e.a} | ${e.pn || '-'} | ${e.tn || '-'} | ${e.d ? String(e.d).replace(/\s*\n\s*/g, ' / ') : '-'}`));
+  else w('(nenhuma ação registrada ainda)');
+  w('');
+  w('— fim do relatório —');
+  download(fileBase() + '.txt', L.join('\r\n'), 'text/plain;charset=utf-8');
+}
+function importJSON(file) {
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result); const ps = d.projects; if (!Array.isArray(ps)) throw 0;
+      const fix = t => ({ id: t.id || uid(), title: t.title || '', done: !!t.done, created: t.created || Date.now(), completedAt: t.completedAt || null, children: (t.children || []).map(fix), logs: t.logs || [], comments: t.comments || [], desc: t.desc || '', collapsed: !!t.collapsed });
+      ps.forEach(p => {
+        const np = { id: p.id || uid(), name: p.name || 'Importado', created: p.created || Date.now(), parentId: p.parentId || null, tasks: (p.tasks || []).map(fix) };
+        const k = S.projects.findIndex(x => x.id === np.id); if (k >= 0) S.projects[k] = np; else S.projects.push(np);
+      });
+      (d.templates || []).forEach(t => { if (!t || !t.id) return; const nt = { id: t.id, name: t.name || 'Modelo', body: t.body || '', created: t.created || Date.now() }; const k = S.templates.findIndex(x => x.id === t.id); if (k >= 0) S.templates[k] = nt; else S.templates.push(nt); });
+      if (Array.isArray(d.events)) { const keys = new Set(S.events.map(e => e.ts + e.a + (e.tid || ''))); d.events.forEach(e => { if (e && e.ts && e.a && !keys.has(e.ts + e.a + (e.tid || ''))) S.events.push(e); }); S.events.sort((a, b) => a.ts - b.ts); }
+      fixParents();
+      if (S.view !== 'project' && ps[0]) { S.view = 'project'; S.active = ps[0].id; }
+      commit(); $('#exp').close(); toast(`${ps.length} projeto(s) importado(s)`);
+    } catch (e) { alert('Arquivo inválido. Use um backup JSON exportado pelo Ramo.'); }
+  };
+  r.readAsText(file);
+}
+
+/* ---------- sincronização entre aparelhos (repositório privado no GitHub) ---------- */
+// Cada projeto, tarefa e modelo guarda a hora da última alteração (S.sync.mt) e as exclusões viram lápides (S.sync.del).
+// Ao sincronizar, o app baixa o arquivo do GitHub, mescla item por item (vale a alteração mais recente) e envia o resultado.
+const CLOUD_KEY = 'ramo.cloud', CLOUD_FILE = 'ramo.json', CLOUD_DEFAULT_REPO = 'obardomoderno/meus-dados';
+const canon = v => JSON.stringify(v, (k, x) => x && typeof x === 'object' && !Array.isArray(x) ? Object.keys(x).sort().reduce((a, kk) => (a[kk] = x[kk], a), {}) : x);
+function flatState(st) {
+  const P = {}, T = {}, M = {};
+  st.projects.forEach((p, i) => {
+    P[p.id] = { id: p.id, name: p.name, created: p.created, parentId: p.parentId || null, o: i };
+    const rec = (list, par) => list.forEach((t, j) => { const { children, collapsed, ...rest } = t; T[t.id] = { ...rest, pid: p.id, par, o: j }; rec(children || [], t.id); });
+    rec(p.tasks, null);
+  });
+  (st.templates || []).forEach((t, i) => { M[t.id] = { id: t.id, name: t.name, body: t.body, created: t.created, o: i }; });
+  return { P, T, M };
+}
+const KINDS = [['P', 'p:'], ['T', 't:'], ['M', 'm:']];
+function sigMap(st) {
+  const f = flatState(st), m = new Map();
+  KINDS.forEach(([k, pre]) => { for (const id in f[k]) m.set(pre + id, canon(f[k][id])); });
+  m.set('run', canon(st.running || null));
+  return m;
+}
+let sigs = null;
+function track() {
+  const cur = sigMap(S);
+  if (!sigs) { sigs = cur; return; }
+  const now = Date.now(); let ch = false;
+  cur.forEach((v, k) => { if (sigs.get(k) !== v) { S.sync.mt[k] = now; delete S.sync.del[k]; ch = true; } });
+  sigs.forEach((v, k) => { if (!cur.has(k) && k !== 'run') { S.sync.del[k] = now; delete S.sync.mt[k]; ch = true; } });
+  sigs = cur;
+  if (ch) { syncDirty = true; cloudSoon(); }
+}
+function payload() {
+  const f = flatState(S);
+  return { v: 1, P: f.P, T: f.T, M: f.M, run: S.running || null, mt: S.sync.mt, del: S.sync.del, evClr: S.sync.evClr || 0, ev: S.events };
+}
+function mergeRemote(R) {
+  if (!R || R.v !== 1) return false;
+  const before = canon(payload()), L = flatState(S), Rmt = R.mt || {};
+  const mt = { ...S.sync.mt }, del = { ...S.sync.del };
+  Object.entries(R.del || {}).forEach(([k, v]) => { if ((del[k] || 0) < v) del[k] = v; });
+  const out = {};
+  KINDS.forEach(([kind, pre]) => {
+    const Lr = L[kind], Rr = R[kind] || {}, o = {};
+    new Set([...Object.keys(Lr), ...Object.keys(Rr)]).forEach(id => {
+      const k = pre + id, lm = S.sync.mt[k] || 0, rm = Rmt[k] || 0, m = Math.max(lm, rm);
+      const rec = rm > lm ? (Rr[id] || Lr[id]) : (Lr[id] || Rr[id]);
+      if (!rec || (del[k] || 0) >= m && del[k]) { delete mt[k]; return; }
+      o[id] = JSON.parse(JSON.stringify(rec)); if (m) mt[k] = m; delete del[k];
+    });
+    out[kind] = o;
+  });
+  // cronômetro: vale o mais recente; uma sessão local que seria perdida vira registro na própria tarefa
+  let run = S.running || null;
+  const lrm = S.sync.mt.run || 0, rrm = Rmt.run || 0;
+  if (rrm > lrm) {
+    const rr = R.run || null;
+    if (S.running && !(rr && rr.tid === S.running.tid && rr.start === S.running.start)) {
+      const t = out.T[S.running.tid], end = Date.now();
+      if (t && end - S.running.start >= 1000 && !(t.logs || []).some(l => l.start === S.running.start)) {
+        const note = (S.running.note || '').trim();
+        t.logs = [...(t.logs || []), { start: S.running.start, end, ...(note ? { note } : {}) }]; mt['t:' + t.id] = end;
+      }
+    }
+    run = rr ? { ...rr } : null; mt.run = rrm;
+  }
+  // histórico de ações: união
+  const evClr = Math.max(S.sync.evClr || 0, R.evClr || 0), seen = new Map();
+  [...S.events, ...(R.ev || [])].forEach(e => { if (e && e.ts && e.ts >= evClr) seen.set(e.ts + '|' + e.a + '|' + (e.tid || '') + '|' + (e.d || ''), e); });
+  const events = [...seen.values()].sort((a, b) => a.ts - b.ts).slice(-50000);
+  // remonta a árvore
+  const coll = new Map(); S.projects.forEach(p => walk(p.tasks, t => coll.set(t.id, !!t.collapsed)));
+  const byO = (a, b) => (a.o || 0) - (b.o || 0) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  const kids = new Map(), push = (key, t) => { if (!kids.has(key)) kids.set(key, []); kids.get(key).push(t); };
+  Object.values(out.T).forEach(t => {
+    if (!out.P[t.pid]) return;
+    const parOk = t.par && out.T[t.par] && out.T[t.par].pid === t.pid;
+    push(parOk ? 't:' + t.par : 'p:' + t.pid, t);
+  });
+  const build = key => (kids.get(key) || []).sort(byO).map(r => {
+    const { pid, par, o, ...rest } = r;
+    return { comments: [], desc: '', logs: [], ...rest, collapsed: coll.get(r.id) || false, children: build('t:' + r.id) };
+  });
+  S.projects = Object.values(out.P).sort(byO).map(p => ({ id: p.id, name: p.name, created: p.created, parentId: p.parentId || null, tasks: build('p:' + p.id) }));
+  S.templates = Object.values(out.M).sort(byO).map(({ o, ...t }) => t);
+  S.events = events; S.running = run;
+  S.sync = { mt, del, evClr };
+  fixParents();
+  sigs = sigMap(S);
+  return canon(payload()) !== before;
+}
+
+function cloudCfg() { try { return JSON.parse(localStorage.getItem(CLOUD_KEY) || 'null'); } catch (e) { return null; } }
+function cloudSaveCfg(c) { try { if (c) localStorage.setItem(CLOUD_KEY, JSON.stringify(c)); else localStorage.removeItem(CLOUD_KEY); } catch (e) {} }
+const cloudSet = patch => { const c = cloudCfg(); if (c) cloudSaveCfg({ ...c, ...patch }); paintSync(); };
+const b64utf8 = str => { const bytes = new TextEncoder().encode(str); let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); };
+const utf8b64 = b64 => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\s/g, '')), c => c.charCodeAt(0)));
+const ghHead = (cfg, accept) => ({ Accept: accept || 'application/vnd.github+json', Authorization: 'Bearer ' + cfg.token });
+const fileUrl = cfg => 'https://api.github.com/repos/' + cfg.repo + '/contents/' + CLOUD_FILE;
+function cloudErr(st) {
+  if (st === 401) return 'Chave inválida ou expirada';
+  if (st === 403) return 'A chave não tem permissão de escrita nesse repositório';
+  if (st === 404) return 'Repositório não encontrado ou sem acesso pela chave';
+  return 'Erro do GitHub' + (st ? ' (' + st + ')' : '');
+}
+async function cloudGet(cfg) {
+  const r = await fetch(fileUrl(cfg) + '?t=' + Date.now(), { cache: 'no-store', headers: ghHead(cfg) });
+  if (r.status === 404) return { sha: null, data: null };
+  if (!r.ok) throw { status: r.status };
+  const j = await r.json(); let text = j.content ? utf8b64(j.content) : '';
+  if (!text && j.size > 0) {   // arquivos acima de 1 MB vêm sem conteúdo: busca o arquivo bruto
+    const r2 = await fetch(fileUrl(cfg) + '?r=' + Date.now(), { cache: 'no-store', headers: ghHead(cfg, 'application/vnd.github.raw+json') });
+    if (!r2.ok) throw { status: r2.status }; text = await r2.text();
+  }
+  let data = null; try { data = JSON.parse(text).data || null; } catch (e) {}
+  return { sha: j.sha, data };
+}
+const cloudPut = (cfg, data, sha) => fetch(fileUrl(cfg), { method: 'PUT', cache: 'no-store', headers: { ...ghHead(cfg), 'Content-Type': 'application/json' },
+  body: JSON.stringify({ message: 'Atualiza ' + CLOUD_FILE, content: b64utf8(JSON.stringify({ app: 'ramo', updatedAt: new Date().toISOString(), data })), ...(sha ? { sha } : {}) }) });
+
+let cloudBusy = false, cloudAgain = false, cloudT = null, syncDirty = false;
+function cloudSoon(ms = 2500) { if (!cloudCfg()) return; clearTimeout(cloudT); cloudT = setTimeout(cloudSync, ms); paintSync(); }
+function holdSync() {
+  const a = document.activeElement;
+  return !!((a && (a.isContentEditable || (/INPUT|TEXTAREA/.test(a.tagName) && !a.classList.contains('runNote') && !a.classList.contains('descIn'))))
+    || $('#noteDlg').classList.contains('show') || $('#cfm').classList.contains('show') || editLog || dragId);
+}
+async function cloudSync() {
+  const cfg = cloudCfg(); if (!cfg) return;
+  if (navigator.onLine === false) { paintSync(); return; }
+  if (holdSync()) { cloudSoon(3000); return; }
+  if (cloudBusy) { cloudAgain = true; return; }
+  cloudBusy = true; paintSync();
+  try {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const g = await cloudGet(cfg);
+      if (g.data && mergeRemote(g.data)) { save(); render(); }
+      const mine = payload();
+      if (g.data && canon(mine) === canon(g.data)) { syncDirty = false; cloudSet({ err: '', last: Date.now() }); return; }
+      const p = await cloudPut(cfg, mine, g.sha);
+      if (p.ok) { syncDirty = false; cloudSet({ err: '', last: Date.now() }); return; }
+      if (p.status !== 409 && p.status !== 422) { cloudSet({ err: cloudErr(p.status) }); return; }
+    }
+  } catch (e) { if (e && e.status) cloudSet({ err: cloudErr(e.status) }); }
+  finally { cloudBusy = false; paintSync(); if (cloudAgain) { cloudAgain = false; cloudSoon(1500); } }
+}
+addEventListener('online', () => cloudSoon(600));
+addEventListener('offline', () => paintSync());
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && cloudCfg()) cloudSoon(300); });
+setInterval(() => { if (document.visibilityState === 'visible' && cloudCfg() && !cloudBusy) cloudSync(); }, 30000);
+
+function syncState() {
+  const c = cloudCfg();
+  if (!c) return ['', 'Só neste aparelho'];
+  if (navigator.onLine === false) return ['off', syncDirty ? 'Offline · alterações salvas aqui' : 'Offline'];
+  if (cloudBusy) return ['busy', 'Sincronizando…'];
+  if (c.err) return ['err', c.err];
+  if (syncDirty) return ['busy', 'Salvando…'];
+  return ['ok', c.last ? 'Sincronizado · ' + ftime(c.last).slice(0, 5) : 'Sincronização ativa'];
+}
+const syncPill = () => { const [cls, tx] = syncState(); return `<button class="syncpill ${cls}" data-act="sync-open"><span class="sdot"></span><span class="stx">${esc(tx)}</span></button>`; };
+function paintSync() {
+  const [cls, tx] = syncState();
+  document.querySelectorAll('.syncpill').forEach(b => { b.className = 'syncpill ' + cls; b.querySelector('.stx').textContent = tx; });
+  const m = $('#syncDlg .nd-meta[data-live]'); if (m) m.textContent = tx;
+}
+function borrowedKey() {
+  for (const k of ['ponteiro.cloud', 'semana.cloud', 'diario.cloud']) {
+    try { const c = JSON.parse(localStorage.getItem(k) || 'null'); if (c && typeof c.token === 'string' && c.token) return { token: c.token, repo: c.repo || CLOUD_DEFAULT_REPO }; } catch (e) {}
+  }
+  return null;
+}
+let syncOffer = null;
+function syncOpen() {
+  hidePop(); if ($('#exp').open) $('#exp').close();
+  const c = cloudCfg(), box = $('#syncBox'); syncOffer = null;
+  if (c) {
+    box.innerHTML = `<h3>Sincronização</h3><div class="nd-meta" data-live>${esc(syncState()[1])}</div>
+      <p class="sy-p">Este aparelho guarda tudo localmente e envia as alterações para <b>${esc(c.repo)}</b> (arquivo <b>${CLOUD_FILE}</b>). Os outros aparelhos recebem em até 30 segundos, ou na hora em que o app volta para a tela. Sem internet, continue usando: tudo sobe quando a conexão voltar.</p>
+      <div class="acts"><button class="btn ghost danger-ghost" data-act="sync-off">Desativar</button><span class="grow"></span><button class="btn ghost" data-act="sync-close">Fechar</button><button class="btn primary" data-act="sync-now">Sincronizar agora</button></div>`;
+  } else {
+    const bk = borrowedKey();
+    box.innerHTML = `<h3>Sincronizar aparelhos</h3><div class="nd-meta">Ative em cada aparelho com o mesmo repositório privado e a mesma chave.</div>
+      <label class="sy-l">Repositório privado<input type="text" id="syRepo" autocapitalize="off" autocomplete="off" spellcheck="false" value="${esc(bk ? bk.repo : CLOUD_DEFAULT_REPO)}"></label>
+      <label class="sy-l">Chave do GitHub<input type="password" id="syTok" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_…" value="${esc(bk ? bk.token : '')}"></label>
+      ${bk ? '<p class="sy-p">Preenchido com a chave que o Ponteiro já usa neste aparelho.</p>' : ''}
+      <p class="sy-p sy-msg" id="syMsg"></p>
+      <div class="acts" id="syActs"><button class="btn ghost" data-act="sync-close">Cancelar</button><button class="btn primary" data-act="sync-on">Ativar</button></div>`;
+  }
+  $('#syncDlg').classList.add('show');
+}
+const closeSync = () => { $('#syncDlg').classList.remove('show'); syncOffer = null; };
+async function syncActivate() {
+  const msg = t => { const m = $('#syMsg'); if (m) m.textContent = t; };
+  const repo = $('#syRepo').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '').replace(/\/$/, ''), token = $('#syTok').value.trim();
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) return msg('Use o formato usuario/repositorio.');
+  if (!token) return msg('Cole a chave do GitHub.');
+  msg('Conectando…');
+  const cfg = { repo, token }; let r;
+  try { r = await fetch('https://api.github.com/repos/' + repo, { cache: 'no-store', headers: ghHead(cfg) }); } catch (e) { return msg('Sem conexão com o GitHub.'); }
+  if (!r.ok) return msg(cloudErr(r.status));
+  const info = await r.json().catch(() => ({}));
+  if (info.private === false) return msg('Esse repositório é público: seus dados ficariam visíveis. Use um repositório privado.');
+  if (info.permissions && info.permissions.push === false) return msg(cloudErr(403));
+  let g; try { g = await cloudGet(cfg); } catch (e) { return msg(cloudErr(e.status)); }
+  if (g.data) {
+    syncOffer = { cfg, data: g.data };
+    msg('Já existem dados de outro aparelho. Num aparelho novo, use os dados sincronizados (o que está aqui é substituído). "Juntar" mistura os dois.');
+    $('#syActs').innerHTML = `<button class="btn ghost" data-act="sync-close">Cancelar</button><span class="grow"></span><button class="btn soft" data-act="sync-merge">Juntar</button><button class="btn primary" data-act="sync-replace">Usar os sincronizados</button>`;
+    return;
+  }
+  cloudSaveCfg(cfg); closeSync(); syncDirty = true; await cloudSync();
+  const c = cloudCfg(); toast(c && c.err ? c.err : 'Sincronização ativada');
+}
+async function syncAdopt(replace) {
+  if (!syncOffer) return;
+  const { cfg, data } = syncOffer;
+  if (replace) {
+    if (S.running) stopTimer();
+    S.projects = []; S.templates = []; S.events = []; S.running = null; S.sync = { mt: {}, del: {}, evClr: 0 }; S.focus = {}; S.active = null; S.view = 'overview';
+    sigs = sigMap(S);
+  }
+  mergeRemote(data); cloudSaveCfg(cfg); closeSync(); save(); render(); animateMain();
+  await cloudSync(); const c = cloudCfg(); toast(c && c.err ? c.err : 'Aparelho sincronizado');
+}
+
+/* ---------- navegação ---------- */
+const taskOf = a => idx.get(a.closest('[data-task]').dataset.task).t;
+function animateMain() { const m = $('#main'); m.classList.remove('zoom-anim'); void m.offsetWidth; m.classList.add('zoom-anim'); window.scrollTo(0, 0); }
+function zoom(id) {
+  if (id) { const e = idx.get(id); if (e) { S.view = 'project'; S.active = e.p.id; } }
+  hidePop(); setFocus(id); save(); render(); animateMain();
+}
+function goView(v) { S.view = v; reorder = false; closeNav(); hidePop(); save(); render(); animateMain(); }
+
+/* ---------- ações ---------- */
+const H = {
+  go: (_, a) => { hidePop(); S.view = 'project'; S.active = a.dataset.pid; setFocus(null); reorder = false; closeNav(); save(); render(); animateMain(); },
+  'nav-overview': () => goView('overview'),
+  'open-projects': (_, a) => showPop(a, projSheet()),
+  'mv-up': id => mvBy(id, -1), 'mv-down': id => mvBy(id, 1), 'mv-in': id => mvIn(id), 'mv-out': id => mvOut(id),
+  'tpl-in': (_, a) => { const ta = a.closest('[data-tpl]').querySelector('.tpl-body'); indentLines(ta, false); tplUpdateLive(ta.closest('[data-tpl]')); ta.focus(); },
+  'tpl-out': (_, a) => { const ta = a.closest('[data-tpl]').querySelector('.tpl-body'); indentLines(ta, true); tplUpdateLive(ta.closest('[data-tpl]')); ta.focus(); },
+  'nav-templates': () => goView('templates'),
+  'new-project': () => newProject(null),
+  'new-sub': () => newProject(S.active),
+  nav: () => { document.body.classList.add('nav-open'); $('#scrim').classList.add('show'); },
+  'add-root': () => addRoot(),
+  addsub: (id, a) => { if (!S.templates.length) return addSub(id); showPop(a, `<button data-act="addsub-blank" data-id="${id}">${I.blank} Subtarefa em branco</button><hr>${tplListPop(id)}`); },
+  'addsub-blank': id => { hidePop(); addSub(id); },
+  'tpl-menu': (_, a) => showPop(a, tplListPop(null)),
+  'use-tpl': (_, a) => { hidePop(); insertTpl(a.dataset.tid, a.dataset.parent); },
+  caret: id => { const e = idx.get(id); e.t.collapsed = !e.t.collapsed; save(); render(); },
+  toggle: id => {
+    const e = idx.get(id);
+    if (e.t.children.length) setAll(e.t, !e.t.done); else { e.t.done = !e.t.done; e.t.completedAt = e.t.done ? Date.now() : null; }
+    const n = counts(e.t.children).total, parts = [];
+    if (n) parts.push(`incluindo ${n} subtarefa(s)`);
+    if (e.t.done) { parts.push(`tempo registrado: ${fmt(totalTime(e.t))} (${Math.round(totalTime(e.t) / 1000)} s)`); parts.push(`desde a criação: ${fmt(Date.now() - e.t.created)}`); }
+    ev(e.t.done ? 'tarefa_concluida' : 'tarefa_reaberta', { t: e.t, d: parts.join('; ') });
+    commit();
+  },
+  timer: id => toggleTimer(id),
+  'stop-run': () => { stopTimer(true); commit(); flushNote(); },
+  'nd-save': () => {
+    if (!noteCur) return closeNote();
+    const e = idx.get(noteCur.tid), l = e && e.t.logs.find(x => x.start === noteCur.start), v = $('#ndText').value.trim();
+    if (l && v !== (l.note || '')) { if (v) l.note = v; else delete l.note; ev('nota_sessao', { t: e.t, d: `${sessTxt(l.start, l.end)} — ${v || '(nota removida)'}` }); }
+    closeNote(); commit(); if (v) toast('Nota salva');
+  },
+  'nd-skip': () => closeNote(),
+  'note-log': (_, a) => { const t = taskOf(a), l = t.logs[+a.dataset.i]; if (l) openNote(t.id, l.start); },
+  'goto-run': () => { const e = idx.get(S.running?.tid); if (!e) return; closeNav(); zoom(e.t.id); },
+  zoom: id => zoom(id),
+  open: id => { zoom(id); setTimeout(() => { const ta = $('#main .descIn'); if (ta) { ta.scrollIntoView({ behavior: 'smooth', block: 'center' }); ta.focus({ preventScroll: true }); } }, 60); },
+  more: (id, a) => showPop(a, `
+    <button data-act="rename-task" data-id="${id}">${I.edit} Renomear</button>
+    <button data-act="dup" data-id="${id}">${I.copy} Duplicar</button>
+    <hr>
+    <button class="danger" data-act="del" data-id="${id}">${I.trash} Excluir</button>`),
+  tmenu: (id, a) => showPop(a, `
+    <button data-act="rename-focus">${I.edit} Renomear</button>
+    <button data-act="dup" data-id="${id}">${I.copy} Duplicar</button>
+    <hr>
+    <button class="danger" data-act="del-focus" data-id="${id}">${I.trash} Excluir</button>`),
+  pmenu: (_, a) => showPop(a, `
+    <button data-act="rename">${I.edit} Renomear</button>
+    <button data-act="new-sub">${I.folder} Novo subprojeto</button>
+    <hr>
+    <button class="danger" data-act="del-project">${I.trash} Excluir projeto</button>`),
+  'rename-task': id => { hidePop(); editingId = id; render(); focusTitle(id, true); },
+  'rename-focus': () => { hidePop(); startEdit($('[data-ftitle]')); },
+  rename: () => { hidePop(); startEdit($('[data-ptitle]')); },
+  dup: id => { hidePop(); const inFocus = curFocus() && curFocus().id === id; duplicate(id); toast(inFocus ? 'Cópia criada ao lado desta tarefa' : 'Tarefa duplicada'); },
+  del: id => { hidePop(); del(id); },
+  'del-focus': id => { hidePop(); const e = idx.get(id); askConfirm(`Excluir “${e.t.title || 'Sem título'}”${e.t.children.length ? ' e todas as subtarefas' : ''}?`, () => { setFocus(e.parent ? e.parent.id : null); del(id, false); }); },
+  'del-project': () => {
+    hidePop(); const p = proj(), d = projDesc(p);
+    askConfirm(`Excluir o projeto “${p.name}”${d.length ? ` e ${d.length} subprojeto(s)` : ''} com todas as tarefas? Isso não pode ser desfeito.`, () => {
+      const gone = new Set([p, ...d]);
+      ev('projeto_excluido', { p, d: `${projCounts(p).total} tarefa(s)${d.length ? `, ${d.length} subprojeto(s)` : ''}` });
+      if ([...gone].some(x => x.tasks.some(containsRunning))) stopTimer();
+      S.projects = S.projects.filter(x => !gone.has(x));
+      const next = p.parentId && projById(p.parentId) ? p.parentId : subsOf(null)[0]?.id;
+      if (next) { S.active = next; S.view = 'project'; } else { S.active = null; S.view = 'overview'; }
+      commit(); toast('Projeto excluído');
+    });
+  },
+  reorder: () => { reorder = !reorder; if (editingId) document.activeElement?.blur(); render(); },
+  expand: () => { walk(curList(), t => t.collapsed = false); save(); render(); },
+  collapse: () => { walk(curList(), t => { if (t.children.length) t.collapsed = true; }); save(); render(); },
+  export: () => {
+    const has = !!proj(), cur = $('#scopeCurL'); cur.classList.toggle('dis', !has); cur.querySelector('input').disabled = !has;
+    document.querySelector(`input[name=scope][value=${has ? 'current' : 'all'}]`).checked = true;
+    hidePop(); $('#exp').showModal();
+  },
+  'ex-json': exportJSON, 'ex-txt': exportTXT,
+  'ex-close': () => $('#exp').close(),
+  import: () => $('#importFile').click(),
+  'cfm-ok': () => { const f = cfmFn; closeCfm(); f && f(); },
+  'cfm-no': () => closeCfm(),
+  'sync-open': () => syncOpen(),
+  'sync-close': () => closeSync(),
+  'sync-on': () => syncActivate(),
+  'sync-merge': () => syncAdopt(false),
+  'sync-replace': () => syncAdopt(true),
+  'sync-now': async () => { await cloudSync(); paintSync(); const c = cloudCfg(); toast(c && c.err ? c.err : 'Sincronizado'); },
+  'sync-off': () => { cloudSaveCfg(null); closeSync(); render(); toast('Sincronização desativada neste aparelho'); },
+  wipe: () => {
+    if ($('#exp').open) $('#exp').close();
+    askConfirm(`Apagar todos os projetos, tarefas, tempos, descrições e o histórico de ações${cloudCfg() ? ' em todos os aparelhos sincronizados' : ''}? Exporte o relatório antes — isso não pode ser desfeito. Seus modelos serão mantidos.`, () => {
+      S.projects = []; S.events = []; S.running = null; S.focus = {}; S.active = null; S.view = 'overview'; editLog = null; reorder = false; S.sync.evClr = Date.now();
+      save(); render(); animateMain(); toast('Todos os dados foram apagados');
+    }, 'Apagar tudo');
+  },
+  'new-tpl': () => { hidePop(); const t = { id: uid(), name: 'Novo modelo', body: '', created: Date.now() }; S.templates.push(t); ev('modelo_criado', { d: t.name }); S.tplSel = t.id; S.view = 'templates'; reorder = false; closeNav(); save(); render(); const n = $('.tpl-name'); if (n) { n.focus(); n.select(); } },
+  'sel-tpl': (_, a) => { S.tplSel = a.dataset.tid; save(); render(); },
+  'del-tpl': () => { const t = S.templates.find(x => x.id === S.tplSel); if (!t) return; askConfirm(`Excluir o modelo “${t.name}”? As tarefas já criadas com ele não serão afetadas.`, () => { ev('modelo_excluido', { d: t.name }); S.templates = S.templates.filter(x => x !== t); S.tplSel = null; save(); render(); toast('Modelo excluído'); }); },
+  'add-cmt': (_, a) => {
+    const box = a.closest('[data-task]'), ta = box.querySelector('.cmtIn'), v = ta.value.trim(); if (!v) return;
+    const t = idx.get(box.dataset.task).t; t.comments.push({ id: uid(), text: v, ts: Date.now() }); ev('comentario', { t, d: v }); ta.value = ''; ta.blur(); commit();
+  },
+  'del-cmt': (_, a) => { const t = taskOf(a), c = t.comments.find(c => c.id === a.dataset.cid); if (c) ev('comentario_apagado', { t, d: c.text }); t.comments = t.comments.filter(c => c.id !== a.dataset.cid); commit(); },
+  'del-log': (_, a) => { const t = taskOf(a), i = +a.dataset.i; askConfirm('Apagar este registro de tempo?', () => { const l = t.logs[i]; ev('tempo_apagado', { t, d: sessTxt(l.start, l.end) }); t.logs.splice(i, 1); editLog = null; commit(); }); },
+  'edit-log': (_, a) => { editLog = { tid: a.closest('[data-task]').dataset.task, i: a.dataset.i }; render(); const f = document.querySelector('.lg-edit input'); if (f) f.focus(); },
+  'cancel-log': () => { editLog = null; render(); },
+  'save-log': (_, a) => {
+    const box = a.closest('[data-task]'), t = idx.get(box.dataset.task).t, st = fromInput(box.querySelector('.le-start').value), now = Date.now();
+    if (isNaN(st)) return toast('Data de início inválida');
+    if (editLog.i === 'run') {
+      if (!S.running || S.running.tid !== t.id) { editLog = null; return render(); }
+      if (st > now) return toast('O início não pode estar no futuro');
+      ev('tempo_editado', { t, d: `sessão em andamento: início alterado de ${fdt(S.running.start)} para ${fdt(st)}` }); S.running.start = st;
+    } else {
+      const en = fromInput(box.querySelector('.le-end').value), l = t.logs[+editLog.i];
+      if (isNaN(en)) return toast('Data de fim inválida');
+      if (en <= st) return toast('O fim precisa ser depois do início');
+      const nv = (box.querySelector('.le-note')?.value || '').trim();
+      if (st !== l.start || en !== l.end) { ev('tempo_editado', { t, d: `de [${sessTxt(l.start, l.end)}] para [${sessTxt(st, en)}]` }); l.start = st; l.end = en; l.edited = true; }
+      if (nv !== (l.note || '')) { if (nv) l.note = nv; else delete l.note; ev('nota_sessao', { t, d: `${sessTxt(l.start, l.end)} — ${nv || '(nota removida)'}` }); }
+    }
+    editLog = null; commit(); toast('Registro de tempo atualizado');
+  },
+  'add-man': (_, a) => {
+    const box = a.closest('[data-task]'), m = parseFloat(box.querySelector('.manMin').value); if (!(m > 0)) return;
+    const end = Date.now(), t = idx.get(box.dataset.task).t, st = end - Math.round(m * 60000); t.logs.push({ start: st, end, manual: true }); ev('tempo_manual', { t, d: sessTxt(st, end) }); commit(); openNote(t.id, st);
+  }
+};
+
+const POP_OPENERS = ['more', 'pmenu', 'tmenu', 'tpl-menu', 'addsub', 'open-projects', 'moveproj'];
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-act]');
+  if (!e.target.closest('#pop') && !(a && POP_OPENERS.includes(a.dataset.act))) hidePop();
+  if (!a) { const r = e.target.closest('.row'); if (r && !reorder && !e.target.closest('[contenteditable="true"]')) zoom(r.dataset.id); return; }
+  const row = a.closest('.row'), id = a.dataset.id || (row && row.dataset.id);
+  if (H[a.dataset.act]) H[a.dataset.act](id, a, e);
+});
+$('#scrim').addEventListener('click', () => { closeNav(); hidePop(); });
+$('#importFile').addEventListener('change', e => { if (e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ''; });
+
+document.addEventListener('input', e => {
+  const el = e.target, box = el.closest('[data-tpl]'); if (box) return tplUpdateLive(box);
+  if (el.classList.contains('runNote') && S.running) { S.running.note = el.value; save(); }
+  if (el.classList.contains('descIn')) { const t = taskOf(el); t.desc = el.value; save(); }
+});
+let descStart = null;
+document.addEventListener('focusin', e => { if (e.target.classList?.contains('descIn')) descStart = e.target.value; });
+
+document.addEventListener('focusout', e => {
+  const el = e.target;
+  if (el.classList?.contains('descIn') && descStart !== null && el.value !== descStart && el.isConnected) { const t = taskOf(el); ev('descricao_editada', { t, d: el.value.trim().replace(/\s*\n\s*/g, ' / ') || '(vazia)' }); save(); descStart = null; }
+  if (el.classList?.contains('title') && el.isConnected && el.closest('.row')) {
+    saveTitle(el); el.removeAttribute('contenteditable');
+    const id = el.closest('.row').dataset.id;
+    if (editingId === id) editingId = null;
+    if (newIds.has(id)) { newIds.delete(id); setTimeout(() => { const x = idx.get(id); if (x && !x.t.title && !x.t.children.length) { const f = findGlobal(id); if (f) { f.arr.splice(f.i, 1); commit(); } } }, 150); }
+  }
+  if (el.dataset?.ptitle !== undefined && proj()) { el.removeAttribute('contenteditable'); const v = el.textContent.trim() || 'Sem nome'; if (v !== proj().name) { const old = proj().name; proj().name = v; ev('projeto_renomeado', { p: proj(), d: `“${old}” → “${v}”` }); save(); renderSide(); const c = $('.crumbs .cur'); if (c) c.textContent = v; } }
+  if (el.dataset?.ftitle !== undefined) { el.removeAttribute('contenteditable'); const t = curFocus(); const v = el.textContent.replace(/\s+/g, ' ').trim(); if (t && v !== t.title) { const old = t.title; t.title = v; ev('tarefa_renomeada', { t, d: `“${old}” → “${v || 'Sem título'}”` }); save(); const c = $('.crumbs .cur'); if (c) c.textContent = v || 'Sem título'; } }
+});
+
+document.addEventListener('keydown', e => {
+  const el = e.target;
+  if (e.key === 'Escape') {
+    if ($('#cfm').classList.contains('show')) { closeCfm(); return; }
+    if ($('#noteDlg').classList.contains('show')) { closeNote(); return; }
+    if ($('#syncDlg').classList.contains('show')) { closeSync(); return; }
+    if ($('#pop').classList.contains('show')) { hidePop(); return; }
+    if (el.isContentEditable || /TEXTAREA|INPUT/.test(el.tagName)) { el.blur(); return; }
+    if ($('#exp').open) return;
+    const f = curFocus(); if (f) { const pe = idx.get(f.id).parent; zoom(pe ? pe.id : null); }
+    return;
+  }
+  if ($('#cfm').classList.contains('show') && e.key === 'Enter') { e.preventDefault(); H['cfm-ok'](); return; }
+  if (el.classList?.contains('tpl-body') && e.key === 'Tab') { e.preventDefault(); indentLines(el, e.shiftKey); tplUpdateLive(el.closest('[data-tpl]')); return; }
+  if (el.classList?.contains('tpl-body') && e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault(); const v = el.value, s = el.selectionStart, ls = v.lastIndexOf('\n', s - 1) + 1, ind = (v.slice(ls).match(/^ */) || [''])[0];
+    el.setRangeText('\n' + ind, s, el.selectionEnd, 'end'); tplUpdateLive(el.closest('[data-tpl]')); return;
+  }
+  if (el.id === 'ndText' && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); H['nd-save'](); return; }
+  if (el.classList?.contains('manMin') && e.key === 'Enter') { H['add-man'](null, el); return; }
+  if (el.closest?.('.lg-edit') && el.tagName === 'INPUT' && e.key === 'Enter') { e.preventDefault(); H['save-log'](null, el); return; }
+  if ((el.dataset?.ptitle !== undefined || el.dataset?.ftitle !== undefined) && e.key === 'Enter') { e.preventDefault(); el.blur(); return; }
+  if (el.classList?.contains('tpl-name') && e.key === 'Enter') { e.preventDefault(); $('.tpl-body')?.focus(); return; }
+  if (!el.classList?.contains('title') || !el.isContentEditable) return;
+  const id = el.closest('.row').dataset.id;
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!el.textContent.trim() || !newIds.has(id)) { el.blur(); return; } saveTitle(el); newIds.delete(id); addAfter(id); }
+  else if (e.key === 'Tab') { e.preventDefault(); saveTitle(el); e.shiftKey ? outdent(id) : indent(id); }
+  else if (e.key === 'Backspace' && el.textContent === '' && !idx.get(id).t.children.length) { e.preventDefault(); newIds.delete(id); editingId = null; del(id, false); }
+});
+document.addEventListener('paste', e => {
+  if (!e.target.isContentEditable) return;
+  e.preventDefault(); document.execCommand('insertText', false, (e.clipboardData.getData('text/plain') || '').replace(/\s*\n\s*/g, ' '));
+});
+
+/* ---------- arrastar e soltar (modo Reorganizar) ---------- */
+const clearDrop = () => document.querySelectorAll('.drop-before,.drop-after,.drop-inside,.nav-item.drop').forEach(x => x.classList.remove('drop-before', 'drop-after', 'drop-inside', 'drop'));
+document.addEventListener('dragstart', e => {
+  const row = e.target.closest?.('.row'); if (!row) return;
+  if (!reorder) { e.preventDefault(); return; }
+  dragId = row.dataset.id;
+  e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragId);
+  try { e.dataTransfer.setDragImage(row, 20, 18); } catch (_) {}
+  setTimeout(() => row.classList.add('dragging'), 0);
+});
+function dropTarget(e) {
+  if (!dragId) return null;
+  const row = e.target.closest('.row');
+  if (row) {
+    const tid = row.dataset.id, src = idx.get(dragId)?.t;
+    if (tid === dragId || (src && find(tid, src.children))) return null;
+    const r = row.getBoundingClientRect(), y = (e.clientY - r.top) / r.height;
+    return { el: row, kind: 'row', id: tid, zone: y < .28 ? 'before' : y > .72 ? 'after' : 'inside' };
+  }
+  const nav = e.target.closest('[data-drop]');
+  if (nav && nav.dataset.drop !== S.active) return { el: nav, kind: 'proj', pid: nav.dataset.drop };
+  const root = e.target.closest('[data-rootdrop]');
+  if (root) return { el: root, kind: 'root' };
+  return null;
+}
+document.addEventListener('dragover', e => {
+  const t = dropTarget(e); clearDrop(); if (!t) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  t.el.classList.add(t.kind === 'row' ? 'drop-' + t.zone : t.kind === 'proj' ? 'drop' : 'drop-inside');
+});
+document.addEventListener('drop', e => {
+  const t = dropTarget(e); clearDrop(); if (!t) return; e.preventDefault();
+  const id = dragId; dragId = null;
+  if (t.kind === 'row') moveTask(id, t.id, t.zone); else if (t.kind === 'proj') moveToProject(id, t.pid); else moveTask(id, null);
+});
+document.addEventListener('dragend', () => { dragId = null; clearDrop(); document.querySelectorAll('.dragging').forEach(x => x.classList.remove('dragging')); });
+
+window.addEventListener('beforeunload', save);
+commit();
+if (cloudCfg()) cloudSoon(400);
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
