@@ -3,8 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#EEF2F4" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0E1417" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F2F2F7">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13,20 +12,17 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <title>Ponteiro</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Ponteiro: um app só. Esta página é a moldura (abas embaixo); cada módulo roda numa área própria:
    tempo/ (cronômetro, histórico, gráficos, atividades, ações diárias e ajustes) e semana/ (diário e plano da semana). */
 :root{
-  --bg:#EEF2F4; --surface:#FFFFFF; --sunk:#E3E9EC; --ink:#122027; --muted:#56666F; --line:#D3DCE0;
+  --bg:#F2F2F7; --surface:#FFFFFF; --sunk:#E9E9EE; --ink:#1C1C1E; --muted:#86868B; --line:#E5E5EA;
   --accent:#0B7A75; --accent-soft:#D5ECEA;
-  --display:"Bricolage Grotesque","Avenir Next","Segoe UI",sans-serif;
-  --body:"Atkinson Hyperlegible","Helvetica Neue",Arial,sans-serif;
+  --display:system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;
+  --body:system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
   --nav:58px; color-scheme:light;
 }
-@media (prefers-color-scheme: dark){:root{
+@media not all{:root{
   --bg:#0E1417; --surface:#172126; --sunk:#111A1E; --ink:#E4ECEF; --muted:#93A3AB; --line:#26343B;
   --accent:#3FC1B8; --accent-soft:#163A38; color-scheme:dark}}
 *{box-sizing:border-box}
@@ -51,6 +47,10 @@ nav.tabs button .dot{position:absolute;top:7px;left:calc(50% + 9px);width:8px;he
 /* com uma folha ou tela de edição aberta, as abas saem do caminho */
 body.modal nav.tabs{transform:translateY(100%)}
 body.modal #stage{bottom:env(safe-area-inset-bottom,0px)}
+
+/* Visual claro no estilo iOS: sempre claro, fonte do sistema (San Francisco), sombras e linhas leves */
+body{font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+h1,h2,h3{letter-spacing:-.02em}
 </style>
 </head>
 <body>
@@ -136,7 +136,7 @@ load(APP[cur]); paint();
 setTimeout(() => { load("tempo"); load("semana"); }, 1200);
 
 /* atualização automática da moldura (os módulos se atualizam sozinhos) */
-const BUILD = "20261025223000";
+const BUILD = "20261106151000";
 let swReg = null;
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(() => {}));
 async function checkUpdate() {

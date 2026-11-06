@@ -3,8 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#F6F4F1" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#141312" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F2F2F7">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13,20 +12,16 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <title>Semana</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
 <script>if (/[?&]embed=1/.test(location.search) && window.parent !== window) document.documentElement.classList.add("embed");</script>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{
   color-scheme:light;
   --bg:#F6F4F1; --surface:#FFFFFF; --sunk:#EEEAE4; --ink:#1C1A17; --muted:#7A736B; --faint:#A9A29A; --line:#E7E2DB;
   --accent:#B94A33; --accent-ink:#FFFFFF; --accent-soft:#F7E4DD; --bad:#B3261E;
-  --L:46%; --font:"Figtree",-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+  --L:46%; --font:system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
   --r:14px; --shadow:0 1px 2px rgba(28,26,23,.05),0 6px 20px rgba(28,26,23,.07);
 }
-@media (prefers-color-scheme: dark){:root{
+@media not all{:root{
   color-scheme:dark;
   --bg:#141312; --surface:#1E1C1A; --sunk:#191816; --ink:#EFEBE6; --muted:#A39C94; --faint:#6E6862; --line:#2D2A27;
   --accent:#EE8A70; --accent-ink:#1A0F0B; --accent-soft:#3A2520; --bad:#F2867D; --L:66%;
@@ -253,11 +248,11 @@ textarea.jtext{min-height:150px;font-size:17px;line-height:1.5;resize:none}
 .sum .tk{color:var(--accent);font-weight:600}
 /* dentro do app único: mesmo visual do Tempo e sem barra de abas própria (a moldura cuida das abas) */
 .embed{
-  --bg:#EEF2F4; --surface:#FFFFFF; --sunk:#E3E9EC; --ink:#122027; --muted:#56666F; --faint:#93A2AA; --line:#D3DCE0;
+  --bg:#F2F2F7; --surface:#FFFFFF; --sunk:#E9E9EE; --ink:#1C1C1E; --muted:#86868B; --faint:#AEAEB2; --line:#E5E5EA;
   --accent:#0B7A75; --accent-ink:#FFFFFF; --accent-soft:#D5ECEA; --bad:#C0392B; --L:44%;
-  --font:"Atkinson Hyperlegible","Helvetica Neue",Arial,sans-serif; --display:"Bricolage Grotesque","Avenir Next","Segoe UI",sans-serif;
-  --shadow:0 1px 2px rgba(18,32,39,.06),0 4px 14px rgba(18,32,39,.06)}
-@media (prefers-color-scheme: dark){.embed{
+  --font:system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif; --display:system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;
+  --shadow:0 1px 2px rgba(0,0,0,.04)}
+@media not all{.embed{
   --bg:#0E1417; --surface:#172126; --sunk:#111A1E; --ink:#E4ECEF; --muted:#93A3AB; --faint:#5F7079; --line:#26343B;
   --accent:#3FC1B8; --accent-ink:#06211F; --accent-soft:#163A38; --bad:#EF7B6E; --L:62%;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25)}}
@@ -265,6 +260,10 @@ textarea.jtext{min-height:150px;font-size:17px;line-height:1.5;resize:none}
 .embed .app{padding-bottom:32px}
 .embed .toast{bottom:16px}
 .embed .dayhead h1,.embed .sheet h3,.embed .big2,.embed .wk{font-family:var(--display);font-weight:700}
+
+/* Visual claro no estilo iOS: sempre claro, fonte do sistema (San Francisco), sombras e linhas leves */
+body{font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+h1,h2,h3{letter-spacing:-.02em}
 </style>
 </head>
 <body>
@@ -1213,7 +1212,7 @@ if (EMBED) {
 if (cloudCfg()) setTimeout(cloudSync, 400);
 
 /* atualização automática */
-const BUILD = "20261025223000";
+const BUILD = "20261106151000";
 window.APP_BUILD = (b => { if (!/^\d{14}$/.test(b)) return ""; const d = new Date(Date.UTC(+b.slice(0, 4), +b.slice(4, 6) - 1, +b.slice(6, 8), +b.slice(8, 10), +b.slice(10, 12))); return pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); })(BUILD);
 let swReg = null;
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(() => {}));

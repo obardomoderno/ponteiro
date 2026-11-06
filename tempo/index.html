@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0B7A75">
+<meta name="theme-color" content="#F2F2F7">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -12,9 +12,6 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <title>Ponteiro</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0}
@@ -22,16 +19,16 @@ img{max-width:100%}
 [hidden]{display:none!important}
 /* Layout: uma coluna de app (máx. 560px), cabeçalho fixo no topo, abas fixas embaixo; editores abrem em tela cheia por cima. */
 :root{
-  --bg:#EEF2F4; --surface:#FFFFFF; --sunk:#E3E9EC; --ink:#122027; --muted:#56666F; --line:#D3DCE0;
+  --bg:#F2F2F7; --surface:#FFFFFF; --sunk:#E9E9EE; --ink:#1C1C1E; --muted:#86868B; --line:#E5E5EA;
   --accent:#0B7A75; --accent-ink:#FFFFFF; --accent-soft:#D5ECEA;
-  --good:#2E7D32; --warn:#B26A00; --bad:#C0392B; --untracked:#B9C4CA;
-  --display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
-  --body:"Atkinson Hyperlegible", "Helvetica Neue", Arial, sans-serif;
-  --mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --good:#248A3D; --warn:#C27400; --bad:#E0352B; --untracked:#C7C7CC;
+  --display:system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;
+  --body:system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+  --mono:system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
   --emoji:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
-  --r:14px; --shadow:0 1px 2px rgba(18,32,39,.06),0 4px 14px rgba(18,32,39,.06);
+  --r:14px; --shadow:0 1px 2px rgba(0,0,0,.04);
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+@media not all{:root:not([data-theme="light"]){
   --bg:#0E1417; --surface:#172126; --sunk:#111A1E; --ink:#E4ECEF; --muted:#93A3AB; --line:#26343B;
   --accent:#3FC1B8; --accent-ink:#06211F; --accent-soft:#163A38;
   --good:#6CC070; --warn:#E3A44A; --bad:#EF7B6E; --untracked:#3A4A52;
@@ -327,6 +324,10 @@ textarea.out{font-family:var(--mono);font-size:16px;min-height:240px}
 .addact svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
 .rsteps .iconbtn.sm{border:0;background:none;color:var(--muted)}
 .embed .subtabs button{padding:7px 4px}
+
+/* Visual claro no estilo iOS: sempre claro, fonte do sistema (San Francisco), sombras e linhas leves */
+body{font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+h1,h2,h3{letter-spacing:-.02em}
 </style>
 <script>if (/[?&]embed=1/.test(location.search) && window.parent !== window) document.documentElement.classList.add("embed");</script>
 </head>
@@ -1769,10 +1770,10 @@ if (EMBED) {
   const waitReady = setInterval(() => { if (!Store.ready) return; clearInterval(waitReady); migrateActs(); hubSummary(); const q = hubQueue; hubQueue = []; q.forEach(startByName); }, 200);
   hubPost({ hub: "ready" });
 }
-window.PONTEIRO_BUILD = (b => { const d = new Date(Date.UTC(+b.slice(0, 4), +b.slice(4, 6) - 1, +b.slice(6, 8), +b.slice(8, 10), +b.slice(10, 12))); return pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); })("20261025224500");
+window.PONTEIRO_BUILD = (b => { const d = new Date(Date.UTC(+b.slice(0, 4), +b.slice(4, 6) - 1, +b.slice(6, 8), +b.slice(8, 10), +b.slice(10, 12))); return pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); })("20261106151000");
 boot();
 /* atualização automática: ao abrir, ao voltar para a tela e a cada 5 min, confere se há versão nova publicada e recarrega */
-const BUILD = "20261025224500";
+const BUILD = "20261106151000";
 let swReg = null;
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(() => {}));
 async function checkUpdate() {

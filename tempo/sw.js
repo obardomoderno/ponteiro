@@ -1,6 +1,6 @@
 // Service worker do Tempo (cronômetro do Ponteiro): guarda o app no aparelho para abrir sem internet.
 // Funciona em qualquer subpasta (ex.: usuario.github.io/ponteiro/tempo/). A sincronização com o GitHub nunca passa pelo cache.
-const VERSION = "tempo-v1";
+const VERSION = "tempo-v2";
 const HOME = new URL("./", self.location).href;
 const SHELL = ["./", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 

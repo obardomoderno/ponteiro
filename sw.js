@@ -1,6 +1,6 @@
 // Service worker do Ponteiro (app único: tempo, semana, hábitos e diário): guarda a moldura do app no aparelho para abrir sem internet.
 // Funciona em qualquer subpasta (ex.: usuario.github.io/ponteiro/). A sincronização com o GitHub nunca passa pelo cache.
-const VERSION = "ponteiro-v18";
+const VERSION = "ponteiro-v19";
 const HOME = new URL("./", self.location).href;
 const SHELL = ["./", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 

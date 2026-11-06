@@ -1,6 +1,6 @@
 // Service worker da Semana: guarda o app no aparelho para abrir sem internet.
 // Funciona em qualquer subpasta (ex.: usuario.github.io/ponteiro/semana/). A sincronização com o GitHub nunca passa pelo cache.
-const VERSION = "semana-v2";
+const VERSION = "semana-v3";
 const HOME = new URL("./", self.location).href;
 const SHELL = ["./", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
