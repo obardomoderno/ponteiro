@@ -2,156 +2,27 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#F2F2F7">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Ponteiro">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" type="image/png" href="icon-192.png">
 <title>Ponteiro</title>
-<style>
-/* Ponteiro: um app só. Esta página é a moldura (abas embaixo); cada módulo roda numa área própria:
-   tempo/ (cronômetro, histórico, gráficos, atividades, ações diárias e ajustes) e semana/ (diário e plano da semana). */
-:root{
-  --bg:#F2F2F7; --surface:#FFFFFF; --sunk:#E9E9EE; --ink:#1C1C1E; --muted:#86868B; --line:#E5E5EA;
-  --accent:#0B7A75; --accent-soft:#D5ECEA;
-  --display:system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;
-  --body:system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
-  --nav:58px; color-scheme:light;
-}
-@media not all{:root{
-  --bg:#0E1417; --surface:#172126; --sunk:#111A1E; --ink:#E4ECEF; --muted:#93A3AB; --line:#26343B;
-  --accent:#3FC1B8; --accent-soft:#163A38; color-scheme:dark}}
-*{box-sizing:border-box}
-html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--ink)}
-body{font-family:var(--body);-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;overscroll-behavior:none;touch-action:manipulation}
-button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-
-#stage{position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);bottom:calc(var(--nav) + env(safe-area-inset-bottom,0px));transition:bottom .2s ease}
-#stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--bg);display:block}
-#stage iframe.off{visibility:hidden;pointer-events:none}
-.boot{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px;pointer-events:none}
-.boot svg{width:40px;height:40px;display:block;margin:0 auto 10px;animation:spin 2.4s linear infinite;transform-origin:50% 50%}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);transition:transform .2s ease}
-nav.tabs .in{max-width:620px;margin:0 auto;height:var(--nav);display:grid;grid-template-columns:repeat(5,1fr);padding-left:max(4px,env(safe-area-inset-left,0px));padding-right:max(4px,env(safe-area-inset-right,0px))}
-nav.tabs button{background:none;border:0;padding:8px 2px 9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;color:var(--muted);min-width:0;position:relative}
-nav.tabs button svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-nav.tabs button[aria-current="page"]{color:var(--accent);font-weight:700}
-nav.tabs button .dot{position:absolute;top:7px;left:calc(50% + 9px);width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--surface)}
-/* com uma folha ou tela de edição aberta, as abas saem do caminho */
-body.modal nav.tabs{transform:translateY(100%)}
-body.modal #stage{bottom:env(safe-area-inset-bottom,0px)}
-
-/* Visual claro no estilo iOS: sempre claro, fonte do sistema (San Francisco), sombras e linhas leves */
-body{font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-h1,h2,h3{letter-spacing:-.02em}
-</style>
+<meta http-equiv="refresh" content="2; url=semana/">
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#F2F2F7;color:#86868B;font:16px system-ui,-apple-system,sans-serif}</style>
 </head>
 <body>
-<div id="stage">
-  <div class="boot" id="boot"><div><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 12V6.5"/></svg>Abrindo…</div></div>
-  <iframe id="f-tempo" class="off" title="Tempo"></iframe>
-  <iframe id="f-semana" class="off" title="Semana, hábitos e diário"></iframe>
-</div>
-<nav class="tabs" aria-label="Seções"><div class="in" id="tabs"></div></nav>
+<p>Abrindo o Ponteiro…</p>
 <script>
-"use strict";
-const $ = s => document.querySelector(s);
-const ICON = {
-  tempo: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>',
-  plan: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8.5 3v4M15.5 3v4"/></svg>',
-  acts: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="5" rx="1.5"/><path d="M4.5 6.5l1 1 1.8-2"/><rect x="3" y="14" width="5" height="5" rx="1.5"/><path d="M11 6.5h10M11 16.5h10"/></svg>',
-  jr: '<svg viewBox="0 0 24 24"><path d="M6 3.5h10.5a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6z"/><path d="M6 3.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2M9.5 8.5h5.5M9.5 12h5.5"/></svg>',
-  more: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
-};
-const TABS = [["tempo", "Tempo"], ["jr", "Diário"], ["plan", "Semana"], ["acts", "Ações"], ["more", "Ajustes"]];
-const APP = { tempo: "tempo", acts: "tempo", more: "tempo", plan: "semana", jr: "semana" };
-const store = { get: (k, d) => { try { return localStorage.getItem(k) || d; } catch (e) { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* ok */ } } };
-
-let cur = store.get("hub.tab", "tempo"); if (!APP[cur]) cur = "tempo";
-let tempoSub = store.get("hub.tempoSub", "now"); if (!["now", "log", "stats", "types"].includes(tempoSub)) tempoSub = "now";
-const frame = { tempo: $("#f-tempo"), semana: $("#f-semana") };
-const ready = {}, queue = {}, modal = {};
-let running = false;
-
-/* o que cada módulo deve mostrar para a aba atual */
-const kFor = tab => tab === "tempo" ? tempoSub : tab;
-function srcFor(app) {
-  if (app === "tempo") return "tempo/?embed=1&tab=" + (APP[cur] === "tempo" ? kFor(cur) : tempoSub);
-  return "semana/?embed=1" + (APP[cur] === "semana" ? "&tab=" + cur : "");
-}
-function load(app) { if (!frame[app].getAttribute("src")) frame[app].src = srcFor(app); }
-function send(app, msg) {
-  if (!ready[app]) { (queue[app] ??= []).push(msg); return; }
-  try { frame[app].contentWindow.postMessage(msg, location.origin); } catch (e) { /* ok */ }
-}
-function paint() {
-  $("#tabs").innerHTML = TABS.map(([k, l]) => `<button data-k="${k}"${k === cur ? ' aria-current="page"' : ""}>${ICON[k]}<span>${l}</span>${k === "tempo" && running ? '<i class="dot" aria-label="cronômetro rodando"></i>' : ""}</button>`).join("");
-  for (const a in frame) frame[a].classList.toggle("off", a !== APP[cur] || !ready[a]);
-  $("#boot").hidden = !!ready[APP[cur]];
-  document.body.classList.toggle("modal", !!modal[APP[cur]]);
-}
-function go(tab, again) {
-  const app = APP[tab];
-  if (tab === "tempo" && again) tempoSub = "now";
-  cur = tab; store.set("hub.tab", tab);
-  load(app);
-  send(app, { hub: "tab", k: kFor(tab), top: !!again });
-  paint();
-  /* o outro módulo carrega logo depois, para trocar de aba sem espera */
-  setTimeout(() => { load("tempo"); load("semana"); }, 700);
-}
-$("#tabs").addEventListener("click", e => { const b = e.target.closest("[data-k]"); if (b) go(b.dataset.k, b.dataset.k === cur); });
-
-addEventListener("message", e => {
-  if (e.origin !== location.origin || !e.data || e.data.hub == null) return;
-  const app = e.data.app; if (!frame[app] || e.source !== frame[app].contentWindow) return;
-  const m = e.data;
-  if (m.hub === "ready") {   // também quando o módulo recarrega sozinho (versão nova): volta para a seção certa
-    ready[app] = true; const q = queue[app] || []; queue[app] = []; q.forEach(x => send(app, x));
-    if (APP[cur] === app) send(app, { hub: "tab", k: kFor(cur) });
-    paint();
-  }
-  else if (m.hub === "modal") { modal[app] = !!m.open; paint(); }
-  else if (m.hub === "sub" && app === "tempo") { if (m.k !== "more") { tempoSub = m.k; store.set("hub.tempoSub", m.k); } }
-  else if ((m.hub === "act" || m.hub === "step") && app === "semana") { load("tempo"); send("tempo", m); }
-  else if (m.hub === "semanaSettings") { go("plan"); send("semana", { hub: "settings" }); }
-  else if (m.hub === "start") { tempoSub = "now"; store.set("hub.tempoSub", "now"); go("tempo"); send("tempo", { hub: "start", name: m.name }); }
-});
-
-/* ponto na aba Tempo quando há cronômetro rodando */
-function readRunning() { try { const T = JSON.parse(localStorage.getItem("hub.tempo") || "null"); return !!(T && T.running && T.running.length); } catch (e) { return false; } }
-function refreshDot() { const r = readRunning(); if (r !== running) { running = r; paint(); } }
-addEventListener("storage", e => { if (e.key === "hub.tempo") refreshDot(); });
-setInterval(refreshDot, 5000);
-
-running = readRunning();
-load(APP[cur]); paint();
-setTimeout(() => { load("tempo"); load("semana"); }, 1200);
-
-/* atualização automática da moldura (os módulos se atualizam sozinhos) */
-const BUILD = "20261106151000";
-let swReg = null;
-if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(() => {}));
-async function checkUpdate() {
-  if (navigator.onLine === false) return;
-  try { if (swReg) swReg.update(); } catch (e) { /* ok */ }
-  let latest = null;
-  try { const h = await (await fetch("./?u=" + Date.now(), { cache: "no-store" })).text(); const m = h.match(/const BUILD = "([0-9]+)"/); latest = m && m[1]; } catch (e) { return; }
-  if (!latest || latest === BUILD) return;
-  if (Object.values(modal).some(Boolean)) { setTimeout(checkUpdate, 15000); return; }
-  try { if (sessionStorage.getItem("hub.updatedTo") === latest) return; sessionStorage.setItem("hub.updatedTo", latest); } catch (e) { /* ok */ }
-  location.reload();
-}
-setTimeout(checkUpdate, 3000);
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkUpdate(); });
-setInterval(checkUpdate, 5 * 60 * 1000);
+/* O app agora mora em semana/ (Diário, Semana e Hábitos). Remove o service worker antigo da raiz e redireciona. */
+(async () => {
+  try {
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      const root = new URL("./", location.href).href;
+      await Promise.all(regs.filter(r => r.scope === root).map(r => r.unregister()));
+    }
+    if (window.caches) { const ks = await caches.keys(); await Promise.all(ks.filter(k => k.startsWith("ponteiro-") || k.startsWith("tempo-")).map(k => caches.delete(k))); }
+  } catch (e) { /* ok */ }
+  location.replace("semana/");
+})();
 </script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 # Ponteiro no GitHub Pages
 
-App único com registro de tempo, planejamento da semana, hábitos e diário, instalável no iPhone e no Mac. É hospedado de graça pelo GitHub Pages, abre sem internet e sincroniza entre aparelhos usando um gist secreto e criptografado na sua conta do GitHub.
+App com diário, planejamento da semana e hábitos, instalável no iPhone e no Mac. Endereço: https://obardomoderno.github.io/ponteiro/semana/ (a raiz redireciona para lá). É hospedado de graça pelo GitHub Pages, abre sem internet e sincroniza entre aparelhos usando um gist secreto e criptografado na sua conta do GitHub.
 
 ## Ramo
 
@@ -9,9 +9,8 @@ Na pasta [`ramo/`](ramo/) fica o **Ramo** (projetos, tarefas dentro de tarefas e
 ## Arquivos
 
 ```
-index.html             o app (moldura com as abas)
-tempo/                 cronômetro, histórico, gráficos e atividades
-semana/                plano da semana, hábitos e diário
+index.html             redireciona para semana/
+semana/                o app: diário, plano da semana e hábitos
 diario/                app antigo (os registros dele aparecem no diário novo)
 ramo/                  app separado de projetos e tarefas (ver ramo/README.md)
 sw.js                  guarda o app no aparelho para abrir offline
